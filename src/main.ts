@@ -1,129 +1,224 @@
-import { Devvit, type FormField } from "@devvit/public-api";
-
+import { Devvit, ModNote } from "@devvit/public-api";
+import type { FormField, TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
+import { Policy, EvaluationResult, PolicyEngine }  from "./PolicyEngine.js";
 import { handleNuke, handleNukePost } from "./nuke.js";
+
+Devvit.addSettings([
+  { // TODO remove; accessed with context.secrets...
+    name: 'apiKey',
+    label: 'OpenAI API Key',
+    type: 'string',
+    scope: 'app',
+    isSecret: true,
+  },
+  { // TODO dont forget to validate JSON; context.setings...
+    name: 'policyJson',
+    label: 'Policy File (JSON)',
+    type: 'paragraph',
+    scope: 'installation', 
+  },
+  {
+    name: 'llmURL',
+    label: 'LLM Base URL',
+    type: 'string',
+    scope: 'installation', 
+  },
+  {
+    name: 'llmName',
+    label: 'LLM Model Name',
+    type: 'string',
+    scope: 'installation', 
+  },
+]);
 
 Devvit.configure({
   redditAPI: true,
 });
 
-const nukeFields: FormField[] = [
-  {
-    name: "remove",
-    label: "Remove comments",
-    type: "boolean",
-    defaultValue: true,
-  },
-  {
-    name: "lock",
-    label: "Lock comments",
-    type: "boolean",
-    defaultValue: false,
-  },
-  {
-    name: "skipDistinguished",
-    label: "Skip distinguished comments",
-    type: "boolean",
-    defaultValue: false,
-  },
-] as const;
 
-const nukeForm = Devvit.createForm(
-  () => {
-    return {
-      fields: nukeFields,
-      title: "Mop Comments",
-      acceptLabel: "Mop",
-      cancelLabel: "Cancel",
-    };
-  },
-  async ({ values }, context) => {
-    if (!values.lock && !values.remove) {
-      context.ui.showToast("You must select either lock or remove.");
-      return;
+// TODO got to have the interface between policy engine and moderation in this file.
+
+
+// Loads context.settings.get("PolicyJson") into a Policy.
+//
+// Assumptions (based on your examples):
+// - PolicyJson is either already an object OR a JSON string.
+// - any_of / all_of are arrays of child policies.
+// - not can be either a single policy OR (as in your YAML) a one-element array; we normalize to a single Policy.
+// - Leaf nodes have a required `name` and then arbitrary keys whose values are either an object
+//   (Record<string, unknown>) or an array of objects (Array<Record<string, unknown>>).
+
+export function loadPolicyFromSettings(context: {
+  settings: { get: (k: string) => unknown };
+}): Policy {
+  const raw = context.settings.get("PolicyJson");
+
+  if (raw == null) {
+    throw new Error(`Missing setting "PolicyJson".`);
+  }
+
+  const parsed: unknown =
+    typeof raw === "string"
+      ? safeJsonParse(raw, `"PolicyJson" is not valid JSON.`)
+      : raw;
+
+  return normalizePolicy(parsed);
+}
+
+function safeJsonParse(s: string, errMsg: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    throw new Error(errMsg);
+  }
+}
+
+function normalizePolicy(x: unknown): Policy {
+  if (!isObject(x)) throw new Error("Policy must be a JSON object.");
+
+  // Branch nodes
+  if ("any_of" in x) {
+    const arr = (x as Record<string, unknown>)["any_of"];
+    if (!Array.isArray(arr)) throw new Error(`"any_of" must be an array.`);
+    return { any_of: arr.map(normalizePolicy) };
+  }
+
+  if ("all_of" in x) {
+    const arr = (x as Record<string, unknown>)["all_of"];
+    if (!Array.isArray(arr)) throw new Error(`"all_of" must be an array.`);
+    return { all_of: arr.map(normalizePolicy) };
+  }
+
+  if ("not" in x) {
+    const v = (x as Record<string, unknown>)["not"];
+
+    // Allow your YAML-shaped case where `not:` points to a one-element list
+    // (e.g., `not: [ { name: "...", ... } ]`), and normalize to single Policy.
+    if (Array.isArray(v)) {
+      if (v.length !== 1) throw new Error(`"not" array must have length 1.`);
+      return { not: normalizePolicy(v[0]) };
     }
 
-    if (context.commentId) {
-      const result = await handleNuke(
-        {
-          remove: values.remove,
-          lock: values.lock,
-          skipDistinguished: values.skipDistinguished,
-          commentId: context.commentId,
-          subredditId: context.subredditId,
-        },
-        context
-      );
-      console.log(
-        `Mop result - ${result.success ? "success" : "fail"} - ${
-          result.message
-        }`
-      );
-      context.ui.showToast(
-        `${result.success ? "Success" : "Failed"} : ${result.message}`
-      );
+    return { not: normalizePolicy(v) };
+  }
+
+  // Leaf / named nodes
+  const name = (x as Record<string, unknown>)["name"];
+  if (typeof name !== "string" || name.length === 0) {
+    throw new Error(`Leaf policy nodes must have a non-empty string "name".`);
+  }
+
+  const out: Record<string, unknown> = { name };
+
+  // Optional next-check (normalize if present)
+  if ("next-check" in x) {
+    const nc = (x as Record<string, unknown>)["next-check"];
+    if (nc !== undefined) out["next-check"] = normalizePolicy(nc);
+  }
+
+  // Copy other keys with minimal validation to fit your index signature:
+  // Record<string, unknown> | Array<Record<string, unknown>>
+  for (const [k, v] of Object.entries(x)) {
+    if (k === "name" || k === "next-check") continue;
+
+    if (Array.isArray(v)) {
+      if (!v.every(isObject)) {
+        throw new Error(
+          `Key "${k}" must be an object or an array of objects.`
+        );
+      }
+      out[k] = v as Array<Record<string, unknown>>;
+    } else if (isObject(v)) {
+      out[k] = v as Record<string, unknown>;
     } else {
-      context.ui.showToast(`Mop failed! Please try again later.`);
+      throw new Error(`Key "${k}" must be an object or an array of objects.`);
     }
   }
-);
 
-Devvit.addMenuItem({
-  label: "Mop comments",
-  description:
-    "Remove this comment and all child comments. This might take a few seconds to run.",
-  location: "comment",
-  forUserType: "moderator",
-  onPress: (_, context) => {
-    context.ui.showForm(nukeForm);
-  },
-});
+  return out as Policy;
+}
 
-const nukePostForm = Devvit.createForm(
-  () => {
-    return {
-      fields: nukeFields,
-      title: "Mop Post Comments",
-      acceptLabel: "Mop",
-      cancelLabel: "Cancel",
-    };
-  },
-  async ({ values }, context) => {
-    if (!values.lock && !values.remove) {
-      context.ui.showToast("You must select either lock or remove.");
-      return;
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+
+// Actual, finalized file below. ===========================================================
+
+let engine: PolicyEngine | undefined;
+let defaultModelName = "gpt-3.5-turbo"; // TODO pick properly
+
+/**
+ * Wrapper around PolicyEngine constructor for skipping repeated instantiation (minor optimization)
+ * and keeping parent function clean.
+ * @returns PolicyEngine object encoding some policy and providing evaluation utility.
+ */
+async function getEngine(context: TriggerContext): Promise<PolicyEngine> {
+  if (!engine) {
+    const policyObj: Policy = await loadPolicyFromSettings(context);
+
+    const modelName = await context.settings.get("llmName") ?? defaultModelName;
+    if (typeof modelName !== "string" || modelName.length === 0) {
+      throw new Error('Setting "llmName" must be a non-empty string');
     }
 
-    if (!context.postId) {
-      throw new Error("No post ID");
+    const baseUrlRaw = await context.settings.get("llmURL");
+    if (typeof baseUrlRaw !== "string" || baseUrlRaw.length === 0) {
+      throw new Error('Setting "llmURL" must be a non-empty string');
     }
+    const baseUrl = baseUrlRaw.replace(/\/+$/, "");
 
-    const result = await handleNukePost(
-      {
-        remove: values.remove,
-        lock: values.lock,
-        skipDistinguished: values.skipDistinguished,
-        postId: context.postId,
-        subredditId: context.subredditId,
-      },
-      context
-    );
-    console.log(
-      `Mop result - ${result.success ? "success" : "fail"} - ${result.message}`
-    );
-    context.ui.showToast(
-      `${result.success ? "Success" : "Failed"} : ${result.message}`
-    );
+    engine = new PolicyEngine({
+      policyObj,
+      modelName,
+      baseUrl,
+    });
+
+    engine.compile();
   }
-);
+  return engine;
+}
 
-Devvit.addMenuItem({
-  label: "Mop post comments",
-  description:
-    "Remove all comments of this post. This might take a few seconds to run.",
-  location: "post",
-  forUserType: "moderator",
-  onPress: (_, context) => {
-    context.ui.showForm(nukePostForm);
+
+// TODO warning, comment type might cause issues later. test thoroughly.
+export async function getThread(context: TriggerContext, comment: { id: string; parentId?: string }): Promise<string[]> {
+  let current = comment;
+  const chain = [];
+
+  while (current.parentId?.startsWith('t1_')) {
+    const parent = await context.reddit.getCommentById(current.parentId);
+    chain.push(parent?.body ?? "");
+    current = parent;
+  }
+  return chain.reverse();
+}
+
+Devvit.addTrigger({
+  // Fires for new comments, including replies.
+  event: "CommentCreate", // TODO: include posts
+  onEvent: async (event: TriggerEventType["CommentCreate"], context) => {
+    const comment = event.comment;
+    const text = comment?.body ?? "";
+    if (!comment || !text) return;
+
+    const commentThread: string[] = await getThread(context, comment);
+    const apiKey = await context.settings.get("apiKey");
+    if (typeof apiKey !== "string") { throw new Error('Setting "apiKey" must be a string'); }
+
+    const engine = await getEngine(context);
+    const result = await engine.evaluateSingle({ text: text, history: commentThread, apiKey: apiKey });
+
+    // temp test:
+    if (result.remove) {
+      await context.reddit.remove(comment.id, false);
+      await context.reddit.addRemovalNote({
+        itemIds: [comment.id], 
+        reasonId: "", // empty for now---may extract from trace in future
+        modNote: "Extract from trace and insert here" // TODO
+      });
+      // TODO: add/post removal reason rather than only mod logging?
+      // call to a comment wrapper function here to reply to user
+    }
   },
 });
 

@@ -1,0 +1,12 @@
+see it run with a trivial evaluation returned---no llm involvement (figure out and verify settings use etc. including json use)
+openai api key creation
+get llm minimal example running through single eval
+persistent storage of action information: full logging, modmails
+migrate nodes classes
+
+
+make sure policy changing workflow makes sense (dont want to be using old policy, want maximum ease)
+
+
+Future
+1. support for posts, not just comments (image understanding? at least route title as a comment)
