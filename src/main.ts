@@ -28,6 +28,7 @@ Devvit.addSettings([
     label: 'LLM Model Name',
     type: 'string',
     scope: 'installation', 
+    defaultValue: 'gpt-3.5-turbo',
   },
 ]);
 
@@ -48,30 +49,9 @@ Devvit.configure({
 // - Leaf nodes have a required `name` and then arbitrary keys whose values are either an object
 //   (Record<string, unknown>) or an array of objects (Array<Record<string, unknown>>).
 
-export function loadPolicyFromSettings(context: {
-  settings: { get: (k: string) => unknown };
-}): Policy {
-  const raw = context.settings.get("PolicyJson");
 
-  if (raw == null) {
-    throw new Error(`Missing setting "PolicyJson".`);
-  }
 
-  const parsed: unknown =
-    typeof raw === "string"
-      ? safeJsonParse(raw, `"PolicyJson" is not valid JSON.`)
-      : raw;
 
-  return normalizePolicy(parsed);
-}
-
-function safeJsonParse(s: string, errMsg: string): unknown {
-  try {
-    return JSON.parse(s);
-  } catch {
-    throw new Error(errMsg);
-  }
-}
 
 function normalizePolicy(x: unknown): Policy {
   if (!isObject(x)) throw new Error("Policy must be a JSON object.");
@@ -145,19 +125,37 @@ function isObject(v: unknown): v is Record<string, unknown> {
 
 // Actual, finalized file below. ===========================================================
 
+type JsonObject = Record<string, unknown>;
+
 let engine: PolicyEngine | undefined;
-let defaultModelName = "gpt-3.5-turbo"; // TODO pick properly
+
+
+async function loadPolicyFromSettings(context: TriggerContext): Promise<JsonObject> {
+  const raw = await context.settings.get("policyJson");
+  if (typeof raw !== "string" || raw.length === 0) {
+    throw new Error('Setting "PolicyJson" must be a non-empty string');
+  }
+  
+  let parsed: JsonObject;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`"PolicyJson" is not valid JSON.`);
+  }
+
+  return parsed;
+}
 
 /**
  * Wrapper around PolicyEngine constructor for skipping repeated instantiation (minor optimization)
- * and keeping parent function clean.
+ * and abstracting away engine construction.
  * @returns PolicyEngine object encoding some policy and providing evaluation utility.
  */
 async function getEngine(context: TriggerContext): Promise<PolicyEngine> {
   if (!engine) {
-    const policyObj: Policy = await loadPolicyFromSettings(context);
+    const policyJson: JsonObject = await loadPolicyFromSettings(context);
 
-    const modelName = await context.settings.get("llmName") ?? defaultModelName;
+    const modelName = await context.settings.get("llmName");
     if (typeof modelName !== "string" || modelName.length === 0) {
       throw new Error('Setting "llmName" must be a non-empty string');
     }
@@ -169,7 +167,7 @@ async function getEngine(context: TriggerContext): Promise<PolicyEngine> {
     const baseUrl = baseUrlRaw.replace(/\/+$/, "");
 
     engine = new PolicyEngine({
-      policyObj,
+      policyJson,
       modelName,
       baseUrl,
     });
@@ -208,7 +206,6 @@ Devvit.addTrigger({
     const engine = await getEngine(context);
     const result = await engine.evaluateSingle({ text: text, history: commentThread, apiKey: apiKey });
 
-    // temp test:
     if (result.remove) {
       await context.reddit.remove(comment.id, false);
       await context.reddit.addRemovalNote({
