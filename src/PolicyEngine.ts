@@ -3,7 +3,7 @@
 export type Policy =
   | { any_of: Policy[] }
   | { all_of: Policy[] }
-  | { not: Policy }
+  | { not: Policy[] | Policy }
   | ({
       name: string;
       "next-check"?: Policy;
@@ -46,19 +46,53 @@ export class PolicyEngine {
   private readonly apiKey: string | undefined; // may be provided at evaluation time
   private readonly baseUrl: string;
   private readonly model: string;
-  private readonly policyObj: Policy;
+  private readonly policyJson: Policy;
 
   constructor(opts: {
-    policyObj: Policy;
+    policyJson: Record<string, unknown>;
     modelName: string;
     baseUrl: string; // PolicyEngine works with any OpenAI-compatible endpoint ex. OpenRouter
     apiKey?: string | undefined;
   }) {
-    this.policyObj = opts.policyObj;
+		if (this.isPolicy(opts.policyJson)) {
+			this.policyJson = opts.policyJson as Policy;
+		} else {
+			throw new Error("Provided policyJson is not a valid Policy.");
+		}
+
     this.model = opts.modelName;
     this.baseUrl = opts.baseUrl.replace(/\/+$/, "");
     this.apiKey = (opts.apiKey);
   }
+
+	// TODO: go over this validation function again later <<< esp. last check
+	private isPolicy(x: unknown): x is Policy {
+		if (typeof x !== "object" || x === null) return false;
+		const o = x as Record<string, unknown>;
+
+		if ("any_of" in o)
+			return Array.isArray(o.any_of) && o.any_of.every(p => this.isPolicy(p));
+
+		if ("all_of" in o)
+			return Array.isArray(o.all_of) && o.all_of.every(p => this.isPolicy(p));
+
+		if ("not" in o)
+			return (
+				(Array.isArray(o.not) && o.not.every(p => this.isPolicy(p)) && o.not.length === 1) 
+				|| this.isPolicy(o.not)
+			);
+
+		if (typeof o.name !== "string") return false;
+		if ("next-check" in o && !this.isPolicy(o["next-check"])) return false;
+
+		return Object.entries(o).every(([k, v]) =>
+			k === "name" || k === "next-check"
+				? true
+				: Array.isArray(v)
+					? v.every(e => typeof e === "object" && e !== null)
+					: typeof v === "object" && v !== null
+		);
+	}
 
   compile(): void {
     console.log("compilation placeholder");
@@ -136,6 +170,10 @@ async evaluateSingle(
     } else {
         throw new Error("API key must be provided either at construction or evaluation time.");
     }
+
+    // temporary return for testing
+    const EvaluationResult = { remove: text.toLowerCase().includes("bananas"), justification: "text contains bananas" };
+    return EvaluationResult;
 
     // history intentionally ignored for now 
     void history;
