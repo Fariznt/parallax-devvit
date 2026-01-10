@@ -1,5 +1,5 @@
 
-openai api key creation
+test bananas
 get llm minimal example running through single eval
 persistent storage of action information: full logging, modmails
 migrate nodes classes
@@ -13,6 +13,7 @@ add function header comments
 Future
 1. support for posts, not just comments (image understanding? at least route title as a comment)
 2. switch to yaml -> json conversion
+3. check compatibility with other apis
 
 notes for me:
 devvit settings set apiKey for setting apiKey
