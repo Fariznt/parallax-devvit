@@ -17,7 +17,8 @@ export type Trace = unknown; // TODO: implement when policy format + traversal e
 
 export interface EvaluationResult {
   remove: boolean;
-  justification: string;
+	explanation: string;
+  modNote: string;
   // trace?: Trace;
 }
 
@@ -97,7 +98,7 @@ export class PolicyEngine {
 	}
 
   compile(): void {
-    console.log("compilation placeholder");
+    console.log("PolicyEngine tree compiled.");
     this.compiled = true;
   }
 
@@ -107,16 +108,26 @@ export class PolicyEngine {
   private buildSystemPrompt(): string {
     //  TODO rewrite to use policy later
     return (
-      'Ignore user message history. Evaluate each individual message on whether it violates the policy: ' +
-      '1. Do not mention bananas\n. ' +
-      'Your response should be in strict JSON format. You MUST output NO other text beyond ' +
+      'Evaluate the target message on whether it violates the policy (any context provided may or may not be relevant):' +
+      '1. Do not mention bananas by name\n. ' +
+      'Your response should be in strict JSON format with no newlines, markdown, backticks. You MUST output NO other text beyond ' +
       'JSON text in this format, where the bracketed text is replaced by you: ' +
       '{ ' +
-      '"violation": [strictly "true" or "false" without quotes], ' +
+      '"violation": [true OR false], ' +
       '"confidence": [A value 0.00 to 1.00 corresponding to your confidence percentage, ' +
       'where a higher value means higher confidence in your decision], ' +
-      '"justification": [One sentence, policy-grounded justification. ' +
-      'N/A permitted for simple cases if violation == false], ' +
+			'"explanation": [' +
+				'Write a policy-grounded explanation.' +
+				'STYLE: notes only; fragments OK; no full sentences; no grammar fixing.' +
+				'USE: abbreviations, symbols (: / → + ()).' +
+				'REQUIRE: rule name + trigger + why it applies.' +
+				'FORBID: hedging, filler.' +
+			'], ' +
+			'"modNote": [' +
+				'Summarize explanation field above. Omit repeating policy.' +
+				'HARD LIMIT: ≤100 characters (count strictly).' +
+				'STYLE: ultra-compact notes; fragments only; Incomplete permitted.' +
+			']' +
       '"rule_id": "[The rule identifier, e.g. "1" or "3b"]", ' +
       '}'
     );
@@ -138,6 +149,8 @@ async fetchLLMResponse(
 			: []),
 		{ role: "user" as const, content: text },
 	];
+
+	console.log('messages: ' + JSON.stringify(messages));
 
 	const response = await fetch(url, {
 		method: "POST",
@@ -193,7 +206,7 @@ async evaluateSingle(
     // void history;
 
     const systemPrompt = this.buildSystemPrompt();
-		const context = history ? `CONTEXT_START\n${history.join("\n")}\nCONTEXT_END` + "CONTEXT_END\n" : null;
+		const context = history ? `CONTEXT_START\n${history.join("\n")}\nCONTEXT_END` : null;
 		const target = `TARGET_START\n${text}\nTARGET_END`;
 		const rawResponse = await this.fetchLLMResponse(
 			key,
@@ -203,6 +216,7 @@ async evaluateSingle(
 			systemPrompt,
 			target
 		);
+		console.log('raw response: ' + rawResponse);
 
 		let parsed: unknown;
 		try {
@@ -211,52 +225,27 @@ async evaluateSingle(
 			throw new Error("LLM did not return valid JSON");
 		}
 
+		console.log('parsed:' + parsed);
 		// TODO: validate shape of returned JSON, define object for returned shape. also need to finalize shape eventually
 		if (
 			typeof parsed !== "object" ||
 			parsed === null ||
-			typeof (parsed as any).decision !== "string" ||
-			typeof (parsed as any).reason !== "string"
+			typeof (parsed as any).violation !== "boolean" ||
+			typeof (parsed as any).explanation !== "string" ||
+			typeof (parsed as any).modNote !== "string"
 		) {
 			throw new Error("Unexpected JSON shape");
 		}
 
-    // const obj = parsed as { violation: unknown; justification: unknown };
-
-    // if (typeof obj.justification !== "string") {
-    //   throw new InvalidLLMOutput("LLM JSON 'justification' must be a string.");
-    // }
-
-    // // Python took whatever is in "violation". Here we coerce common cases safely.
-    // let remove: boolean;
-    // if (typeof obj.violation === "boolean") {
-    //   remove = obj.violation;
-    // } else if (typeof obj.violation === "string") {
-    //   const v = obj.violation.trim().toLowerCase();
-    //   if (v === "true") remove = true;
-    //   else if (v === "false") remove = false;
-    //   else throw new InvalidLLMOutput("LLM JSON 'violation' must be boolean or 'true'/'false'.");
-    // } else {
-    //   throw new InvalidLLMOutput("LLM JSON 'violation' must be boolean or 'true'/'false'.");
-    // }
-
 		const result = parsed as any; // replace with better typing later
     return {
       remove: result.violation,
-      justification: result.reason,
+			explanation: result.explanation,
+      modNote: result.modNote,
     };
   }
 
   async evaluateBatch(_text: string[], _history: string[] | null = null): Promise<EvaluationResult> {
     throw new Error("NotImplementedError");
-  }
-
-  async evaluate(text: string | string[], history: string[] | null = null): Promise<EvaluationResult> {
-    if (!this.compiled) throw new Error("PolicyEngine must be compiled before evaluation.");
-
-    if (Array.isArray(text)) {
-      return this.evaluateBatch(text, history);
-    }
-    return this.evaluateSingle(text, history);
   }
 }
