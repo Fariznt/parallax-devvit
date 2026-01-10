@@ -215,13 +215,14 @@ Devvit.addTrigger({
 
     const engine = await getEngine(context);
     const result = await engine.evaluateSingle({ text: text, history: commentThread, apiKey: apiKey });
+    console.log('Evaluation result:', result);
 
     if (result.remove) {
       await context.reddit.remove(comment.id, false);
       await context.reddit.addRemovalNote({
         itemIds: [comment.id], 
         reasonId: "", // empty for now---may extract from trace in future
-        modNote: "Extract from trace and insert here" // TODO
+        modNote: result.modNote
       });
       // TODO: add/post removal reason rather than only mod logging?
       // call to a comment wrapper function here to reply to user
