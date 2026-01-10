@@ -1,5 +1,7 @@
 // PolicyEngine.ts
 
+import { KeyValueStorage } from "@devvit/public-api/apis/key-value-storage/KeyValueStorage.js";
+
 export type Policy =
   | { any_of: Policy[] }
   | { all_of: Policy[] }
@@ -103,10 +105,10 @@ export class PolicyEngine {
 
 
   private buildSystemPrompt(): string {
-    // Kept very close to your Python string; consider rewriting later for cleanliness.
+    //  TODO rewrite to use policy later
     return (
       'Ignore user message history. Evaluate each individual message on whether it violates the policy: ' +
-      '1. Dont be mean\n. ' +
+      '1. Do not mention bananas\n. ' +
       'Your response should be in strict JSON format. You MUST output NO other text beyond ' +
       'JSON text in this format, where the bracketed text is replaced by you: ' +
       '{ ' +
@@ -120,36 +122,47 @@ export class PolicyEngine {
     );
   }
 
-  private async createChatCompletion(messages: ChatMessage[]): Promise<string> {
-    const url = `${this.baseUrl}/chat/completions`;
+async fetchLLMResponse(
+	apiKey: string, 
+	url: string, 
+	model: string, 
+	context: string | null, 
+	systemPrompt: string, 
+	text: string
+): Promise<string> {
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        temperature: 0.0,
-      }),
-    });
+	const messages = [
+		{ role: "system" as const, content: systemPrompt },
+		...(context !== null // optional context messages
+			? [{ role: "user" as const, content: context }]
+			: []),
+		{ role: "user" as const, content: text },
+	];
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`OpenAI API error ${res.status}: ${text}`);
-    }
+	const response = await fetch(url, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"Authorization": `Bearer ${apiKey}`,
+		},
+		body: JSON.stringify({
+			model,
+			messages,
+			temperature: 0,
+		}),
+	});
 
-    const data = (await res.json()) as OpenAIChatCompletionsResponse;
-    const raw = data.choices?.[0]?.message?.content ?? null;
+	if (!response.ok) {
+		const errText = await response.text();
+		throw new Error(`API error ${response.status}: ${errText}`);
+	}
 
-    if (typeof raw !== "string" || raw.trim().length === 0) {
-      throw new InvalidLLMOutput("LLM returned empty content.");
-    }
+	const data = await response.json();
+	console.log(data);
 
-    return raw;
-  }
+	return data.choices[0].message.content;
+}
+
 
 async evaluateSingle(
   {
@@ -163,69 +176,74 @@ async evaluateSingle(
   }
 ): Promise<EvaluationResult> {
 
+		let key: string;
     if (apiKey !== undefined) {
-        const key = apiKey;
+        key = apiKey;
     } else if (this.apiKey !== undefined) {
-        const key = this.apiKey;
+        key = this.apiKey;
     } else {
         throw new Error("API key must be provided either at construction or evaluation time.");
     }
 
-    // temporary return for testing
-    const EvaluationResult = { remove: text.toLowerCase().includes("bananas"), justification: "text contains bananas" };
-    return EvaluationResult;
+    // // temporary return for testing... remove
+    // const EvaluationResult = { remove: text.toLowerCase().includes("bananas"), justification: "text contains bananas" };
+    // return EvaluationResult;
 
     // history intentionally ignored for now 
-    void history;
+    // void history;
 
     const systemPrompt = this.buildSystemPrompt();
+		const context = history ? `CONTEXT_START\n${history.join("\n")}\nCONTEXT_END` + "CONTEXT_END\n" : null;
+		const target = `TARGET_START\n${text}\nTARGET_END`;
+		const rawResponse = await this.fetchLLMResponse(
+			key,
+			this.baseUrl,
+			this.model,
+			context,
+			systemPrompt,
+			target
+		);
 
-    const rawResponse = await this.createChatCompletion([
-      { role: "system", content: systemPrompt },
-      { role: "user", content: text },
-    ]);
+		let parsed: unknown;
+		try {
+			parsed = JSON.parse(rawResponse);
+		} catch {
+			throw new Error("LLM did not return valid JSON");
+		}
 
-    console.log(`raw_response:\n ${rawResponse}`);
+		// TODO: validate shape of returned JSON, define object for returned shape. also need to finalize shape eventually
+		if (
+			typeof parsed !== "object" ||
+			parsed === null ||
+			typeof (parsed as any).decision !== "string" ||
+			typeof (parsed as any).reason !== "string"
+		) {
+			throw new Error("Unexpected JSON shape");
+		}
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(rawResponse);
-    } catch (e) {
-      throw new InvalidLLMOutput("LLM output could not be parsed as JSON.");
-    }
+    // const obj = parsed as { violation: unknown; justification: unknown };
 
-    // Validate shape minimally
-    if (
-      typeof parsed !== "object" ||
-      parsed === null ||
-      !("violation" in parsed) ||
-      !("justification" in parsed)
-    ) {
-      throw new InvalidLLMOutput("LLM JSON missing required keys.");
-    }
+    // if (typeof obj.justification !== "string") {
+    //   throw new InvalidLLMOutput("LLM JSON 'justification' must be a string.");
+    // }
 
-    const obj = parsed as { violation: unknown; justification: unknown };
+    // // Python took whatever is in "violation". Here we coerce common cases safely.
+    // let remove: boolean;
+    // if (typeof obj.violation === "boolean") {
+    //   remove = obj.violation;
+    // } else if (typeof obj.violation === "string") {
+    //   const v = obj.violation.trim().toLowerCase();
+    //   if (v === "true") remove = true;
+    //   else if (v === "false") remove = false;
+    //   else throw new InvalidLLMOutput("LLM JSON 'violation' must be boolean or 'true'/'false'.");
+    // } else {
+    //   throw new InvalidLLMOutput("LLM JSON 'violation' must be boolean or 'true'/'false'.");
+    // }
 
-    if (typeof obj.justification !== "string") {
-      throw new InvalidLLMOutput("LLM JSON 'justification' must be a string.");
-    }
-
-    // Python took whatever is in "violation". Here we coerce common cases safely.
-    let remove: boolean;
-    if (typeof obj.violation === "boolean") {
-      remove = obj.violation;
-    } else if (typeof obj.violation === "string") {
-      const v = obj.violation.trim().toLowerCase();
-      if (v === "true") remove = true;
-      else if (v === "false") remove = false;
-      else throw new InvalidLLMOutput("LLM JSON 'violation' must be boolean or 'true'/'false'.");
-    } else {
-      throw new InvalidLLMOutput("LLM JSON 'violation' must be boolean or 'true'/'false'.");
-    }
-
+		const result = parsed as any; // replace with better typing later
     return {
-      remove,
-      justification: obj.justification,
+      remove: result.violation,
+      justification: result.reason,
     };
   }
 

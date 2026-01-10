@@ -1,0 +1,20 @@
+{
+  "name": "policy-agent",
+  "blocks": {
+    "entry": "src/main.ts"
+  },
+  "permissions": {
+    "http": {
+      "enable": true,
+      "domains": ["api.openai.com", "generativelanguage.googleapis.com"]
+    },
+    "redis": true,
+    "reddit": {
+      "enable": true,
+      "scope": "moderator"
+    }
+  },
+  "dev": {
+    "subreddit": "policy_agent_dev"
+  }
+}
