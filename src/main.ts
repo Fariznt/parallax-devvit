@@ -1,10 +1,9 @@
 import { Devvit, ModNote } from "@devvit/public-api";
 import type { FormField, TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
-import { Policy, EvaluationResult, PolicyEngine }  from "./PolicyEngine.js";
-import { handleNuke, handleNukePost } from "./nuke.js";
+import { Policy, EvaluationResult, PolicyEngine }  from "./PolicyEngine/PolicyEngine.js";
 
 Devvit.addSettings([
-  { // TODO remove; accessed with context.secrets...
+  {
     name: 'apiKey',
     label: 'OpenAI API Key',
     type: 'string',
@@ -38,99 +37,9 @@ Devvit.configure({
   http: true,
 });
 
-
-// TODO got to have the interface between policy engine and moderation in this file.
-
-
-// Loads context.settings.get("PolicyJson") into a Policy.
-//
-// Assumptions (based on your examples):
-// - PolicyJson is either already an object OR a JSON string.
-// - any_of / all_of are arrays of child policies.
-// - not can be either a single policy OR (as in your YAML) a one-element array; we normalize to a single Policy.
-// - Leaf nodes have a required `name` and then arbitrary keys whose values are either an object
-//   (Record<string, unknown>) or an array of objects (Array<Record<string, unknown>>).
-
-
-
-
-
-function normalizePolicy(x: unknown): Policy {
-  if (!isObject(x)) throw new Error("Policy must be a JSON object.");
-
-  // Branch nodes
-  if ("any_of" in x) {
-    const arr = (x as Record<string, unknown>)["any_of"];
-    if (!Array.isArray(arr)) throw new Error(`"any_of" must be an array.`);
-    return { any_of: arr.map(normalizePolicy) };
-  }
-
-  if ("all_of" in x) {
-    const arr = (x as Record<string, unknown>)["all_of"];
-    if (!Array.isArray(arr)) throw new Error(`"all_of" must be an array.`);
-    return { all_of: arr.map(normalizePolicy) };
-  }
-
-  if ("not" in x) {
-    const v = (x as Record<string, unknown>)["not"];
-
-    // Allow your YAML-shaped case where `not:` points to a one-element list
-    // (e.g., `not: [ { name: "...", ... } ]`), and normalize to single Policy.
-    if (Array.isArray(v)) {
-      if (v.length !== 1) throw new Error(`"not" array must have length 1.`);
-      return { not: normalizePolicy(v[0]) };
-    }
-
-    return { not: normalizePolicy(v) };
-  }
-
-  // Leaf / named nodes
-  const name = (x as Record<string, unknown>)["name"];
-  if (typeof name !== "string" || name.length === 0) {
-    throw new Error(`Leaf policy nodes must have a non-empty string "name".`);
-  }
-
-  const out: Record<string, unknown> = { name };
-
-  // Optional next-check (normalize if present)
-  if ("next-check" in x) {
-    const nc = (x as Record<string, unknown>)["next-check"];
-    if (nc !== undefined) out["next-check"] = normalizePolicy(nc);
-  }
-
-  // Copy other keys with minimal validation to fit your index signature:
-  // Record<string, unknown> | Array<Record<string, unknown>>
-  for (const [k, v] of Object.entries(x)) {
-    if (k === "name" || k === "next-check") continue;
-
-    if (Array.isArray(v)) {
-      if (!v.every(isObject)) {
-        throw new Error(
-          `Key "${k}" must be an object or an array of objects.`
-        );
-      }
-      out[k] = v as Array<Record<string, unknown>>;
-    } else if (isObject(v)) {
-      out[k] = v as Record<string, unknown>;
-    } else {
-      throw new Error(`Key "${k}" must be an object or an array of objects.`);
-    }
-  }
-
-  return out as Policy;
-}
-
-function isObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
-
-// Actual, finalized file below. ===========================================================
-
 type JsonObject = Record<string, unknown>;
 
 let engine: PolicyEngine | undefined;
-
 
 async function loadPolicyFromSettings(context: TriggerContext): Promise<JsonObject> {
   const raw = await context.settings.get("policyJson");
@@ -173,15 +82,20 @@ async function getEngine(context: TriggerContext): Promise<PolicyEngine> {
       modelName,
       baseUrl,
     });
-
-    engine.compile();
   }
   return engine;
 }
 
+async function getKey(context: TriggerContext): Promise<string> {
+  const apiKey = await context.settings.get("apiKey");
+  if (typeof apiKey !== "string" || apiKey.length === 0) {
+    throw new Error('Setting "apiKey" must be a non-empty string');
+  }
+  return apiKey;
+}
 
 // TODO warning, comment type might cause issues later. test thoroughly.
-export async function getThread(context: TriggerContext, comment: { id: string; parentId?: string }): Promise<string[]> {
+async function getThread(context: TriggerContext, comment: { id: string; parentId?: string }): Promise<string[]> {
   let current = comment;
   const chain = [];
 
@@ -197,6 +111,17 @@ export async function getThread(context: TriggerContext, comment: { id: string; 
   return chain.reverse();
 }
 
+async function resultApply(result: EvaluationResult, contentId: string, context: TriggerContext): Promise<void> {
+  if (result.violation) {
+    await context.reddit.remove(contentId, false);
+    await context.reddit.addRemovalNote({
+      itemIds: [contentId], 
+      reasonId: "", // empty for now---may extract from trace in future
+      modNote: result.modNote
+    });
+  }
+}
+
 Devvit.addTrigger({
   // Fires for new comments, including replies.
   event: "CommentCreate", // TODO: include posts
@@ -210,23 +135,44 @@ Devvit.addTrigger({
     const commentThread: string[] = await getThread(context, comment);
     console.log('commentThread:', commentThread)
 
-    const apiKey = await context.settings.get("apiKey");
-    if (typeof apiKey !== "string") { throw new Error('Setting "apiKey" must be a string'); }
+    console.log("Evaluation text:" + text);
 
+    const apiKey = await getKey(context);
     const engine = await getEngine(context);
-    const result = await engine.evaluateSingle({ text: text, history: commentThread, apiKey: apiKey });
+    const result = await engine.evaluate({ text: text, history: commentThread, apiKey: apiKey });
+    console.log('Evaluation result:', result);
+    resultApply(result, comment.id, context);
+  },
+});
+
+Devvit.addTrigger({
+  // Fires for newly created posts.
+  event: "PostCreate",
+  onEvent: async (event: TriggerEventType["PostCreate"], context) => {
+    console.log("PostCreate event triggered");
+
+    const post = event.post ? await context.reddit.getPostById(event.post.id) : null;
+    if (!post) {
+      console.warn("PostCreate fired without post payload");
+      return;
+    }
+    const body = post.body ? post.body.trim() : "No Body";
+    const title = post.title.trim();
+    const text =
+      `POST TITLE:\n${title}\n\n` +
+      `POST BODY:\n${body}`;
+
+    const enrichedThumbnail = await post.getEnrichedThumbnail();
+    const imgLink = enrichedThumbnail?.image.url ?? null; 
+
+    console.log("Evaluation text:", text);
+
+    const apiKey = await getKey(context);
+    const engine = await getEngine(context);
+    const result = await engine.evaluate({ text: text, imageUrl: imgLink, history: null, apiKey: apiKey });
     console.log('Evaluation result:', result);
 
-    if (result.remove) {
-      await context.reddit.remove(comment.id, false);
-      await context.reddit.addRemovalNote({
-        itemIds: [comment.id], 
-        reasonId: "", // empty for now---may extract from trace in future
-        modNote: result.modNote
-      });
-      // TODO: add/post removal reason rather than only mod logging?
-      // call to a comment wrapper function here to reply to user
-    }
+    resultApply(result, post.id, context);
   },
 });
 
