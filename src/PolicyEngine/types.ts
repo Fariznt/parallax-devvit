@@ -70,6 +70,8 @@ export type Policy = {
 	severity?: number; // optional severity score for violating this check
 } & (Predicate | Combinator);
 
+// === Definitions for PolicyEngine output ===
+
 // Information corresponding to some predicate, returned by evaluateHelper so that
 // expensive calls can be done with batching of all checks that wanted to use the 
 // expensive tool (ex. LLM)
@@ -96,7 +98,7 @@ export type Violation = {
 }
 
 // The object received by the worker or event handler using PolicyEngine
-export type EvaluationResult {
+export type EvaluationResult = {
 	violations: Violation[]; // list of all violations found during evaluation
   violation: boolean; // whether the content violates the policy; true if violations length > 0
   modNote: string; // 100 character of less, possibly incomplete summary-note of explanation
@@ -106,9 +108,11 @@ export type EvaluationResult {
 	shortCircuit: boolean; 
 }
 
+// ===Definitions for policy evaluation process===
+
 // A function that evaluates some type of individual PolicyNode node (any predicate or combinator)
 // during recursive policy evaluation
-export type NodeEvaluator = (placeholder: unknown) => unknown // TODO
+export type NodeEvaluator = (placeholder: unknown) => void // TODO
 
 export type EvaluationState = {
 	policyNode: Policy; // current node in policy tree
