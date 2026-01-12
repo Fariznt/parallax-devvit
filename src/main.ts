@@ -1,6 +1,7 @@
 import { Devvit, ModNote } from "@devvit/public-api";
 import type { FormField, TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
-import { Policy, EvaluationResult, PolicyEngine }  from "./PolicyEngine/PolicyEngine.js";
+import { PolicyEngine }  from "./PolicyEngine/engine.js";
+import type { EvaluationResult } from "./PolicyEngine/types.js";
 
 Devvit.addSettings([
   {
@@ -139,7 +140,7 @@ Devvit.addTrigger({
 
     const apiKey = await getKey(context);
     const engine = await getEngine(context);
-    const result = await engine.evaluate({ text: text, history: commentThread, apiKey: apiKey });
+    const result = await engine.evaluate({ text: text, history: commentThread, apiKey: apiKey, shortCircuit: false });
     console.log('Evaluation result:', result);
     resultApply(result, comment.id, context);
   },
