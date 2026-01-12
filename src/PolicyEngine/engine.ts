@@ -161,12 +161,24 @@ evaluateHelper(
 		);
 	}
 
+	function nextCheck(state: EvaluationState): void {
+		PolicyEngine.nodeEvaluators[key]({
+				evalState: state,
+				doShortCircuit: doShortCircuit, 
+				text: text, 
+				imageUrl: imageUrl, 
+				history: history, 
+				apiKey: apiKey 
+			});	
+	}
+
   const key = getDispatchKey(evalState.policyNode);
   return PolicyEngine.nodeEvaluators[key]({
 		evalState: evalState,
+		nextCheck: nextCheck,
 		doShortCircuit: doShortCircuit, 
 		text: text, 
-		imageUrl:imageUrl, 
+		imageUrl: imageUrl, 
 		history: history, 
 		apiKey: apiKey 
 	});

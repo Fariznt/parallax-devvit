@@ -112,10 +112,28 @@ export type EvaluationResult = {
 
 // A function that evaluates some type of individual PolicyNode node (any predicate or combinator)
 // during recursive policy evaluation
-export type NodeEvaluator = (placeholder: unknown) => void // TODO
+export type NodeEvaluator = ({
+  // evaluation state
+  evalState,
+	// function to do checks on a child node
+	nextCheck,
+  // content info and evaluation specifications
+  doShortCircuit, // whether we do short-circuiting in logic nodes
+  text,
+  imageUrl,
+  history,
+  apiKey,
+}: {
+  evalState: EvaluationState;
+	nextCheck: (state: EvaluationState) => void;
+  doShortCircuit: boolean | null; 
+  text: string;
+  imageUrl?: string | null;
+  history?: string[] | null;
+  apiKey?: string;
+}) => void;
 
 export type EvaluationState = {
-	policyNode: Policy; // current node in policy tree
 	violations: Violation[]; // accumulated violations so far
 	// address of parent node, or null if at root; 
 	// used to build current node address in the form <node type>@<parent address>
