@@ -1,4 +1,4 @@
-export type NodeType = "regex_check" | "safety_check" | "semantic_check" | "language_check"
+export type NodeType = "regex_check" | "safety_check" | "semantic_check" | "language_check" | "all_of" | "any_of" | "not"
 
 export type SafetyCategory =
   | "sexual"
@@ -45,7 +45,7 @@ export type NodeSpecification = {
 	safety_check: {
 		scope: 'text' | 'image' | 'both';
 	} & SafetySpecification;
-  semantic_check: { prompt: string };
+  semantic_check: { semantic: string };
 	language_check: { allowed: string[] }; // to be implemented using language.googleapis.com
 };
 
@@ -78,13 +78,15 @@ export type Policy = {
 export type DeferredCheck = {
 	type: 'semantic_check';
 	rule: string;
+	negate: boolean // flipped by a NOT node
 }
 
 // An identifier of nodes in the policy-tree generated lazily at evaluation time
 // Exists for humans to understand how policy evaluation occurred and details
 export type NodeIdentifier = { // generated at evaluation time lazily
 	display_name?: string;
-	// unique address in policy tree as node@parent@grandparent...@root where each is the name or type of the node
+	// address in policy tree as root...grandparent.parent.node where each is the name or type of the node
+	// uniqueness is not enforced (naming recommended for adjacent duplicate node types ex. who regexes under an any_of)
 	address: string;
 	type: NodeType;
 }
@@ -113,10 +115,9 @@ export type EvaluationResult = {
 // A function that evaluates some type of individual PolicyNode node (any predicate or combinator)
 // during recursive policy evaluation
 export type NodeEvaluator = ({
-  // evaluation state
-  evalState,
-	// function to do checks on a child node
-	nextCheck,
+  evalState, // evaluation state (info accumulator)
+	policyNode, // the node this was called for
+	nextCheck, // function to do checks on a child node
   // content info and evaluation specifications
   doShortCircuit, // whether we do short-circuiting in logic nodes
   text,
@@ -125,7 +126,8 @@ export type NodeEvaluator = ({
   apiKey,
 }: {
   evalState: EvaluationState;
-	nextCheck: (state: EvaluationState) => void;
+	policyNode: Policy;
+	nextCheck: (node: Policy) => void;
   doShortCircuit: boolean | null; 
   text: string;
   imageUrl?: string | null;

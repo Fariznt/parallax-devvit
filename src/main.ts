@@ -1,5 +1,5 @@
 import { Devvit, ModNote } from "@devvit/public-api";
-import type { FormField, TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
+import type { TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
 import { PolicyEngine }  from "./PolicyEngine/engine.js";
 import type { EvaluationResult } from "./PolicyEngine/types.js";
 
@@ -120,6 +120,7 @@ async function resultApply(result: EvaluationResult, contentId: string, context:
       reasonId: "", // empty for now---may extract from trace in future
       modNote: result.modNote
     });
+    // alert modmail as needed
   }
 }
 

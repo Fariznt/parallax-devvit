@@ -1,5 +1,28 @@
-import type { NodeEvaluator } from "../types";
+import type { EvaluationState, Policy } from "../types.js";
+import { assertSemanticCheck } from "../validator.js";
 
+export function evalSemantic({
+  evalState, // evaluation state (info accumulator)
+	policyNode, // the node this was called for
+	nextCheck, // function to do checks on a child node
+  // content info and evaluation specifications
+  doShortCircuit, // whether we do short-circuiting in logic nodes
+  text,
+  imageUrl,
+  history,
+  apiKey,
+}: {
+  evalState: EvaluationState;
+	policyNode: Policy;
+	nextCheck: (node: Policy) => void;
+  doShortCircuit: boolean | null; 
+  text: string;
+  imageUrl?: string | null;
+  history?: string[] | null;
+  apiKey?: string;
+}): void {
+	console.warn('Semantic nodes are not implemented')
+}
 
 // LLM-only evaluation code---was here before policy tree implementation
 // async evaluate(
@@ -81,3 +104,75 @@ import type { NodeEvaluator } from "../types";
 // 			trace: null, // TODO implement trace later
 //     };
 //   }
+
+//   private buildSystemPrompt(): string {
+//     //  TODO rewrite to use policy later
+//     return (
+//       'Evaluate the target message on whether it violates the policy (any context provided may or may not be relevant):' +
+//       '1. Do not mention the word bananas explicitly.\n. ' +
+//       'Your response should be in strict JSON format with no newlines, markdown, backticks. You MUST output NO other text beyond ' +
+//       'JSON text in this format, where the bracketed text is replaced by you: ' +
+//       '{ ' +
+//       '"violation": [true OR false], ' +
+//       '"confidence": [A value 0.00 to 1.00 corresponding to your confidence percentage, ' +
+//       'where a higher value means higher confidence in your decision], ' +
+//             '"explanation": [' +
+//                 'Write a policy-grounded explanation.' +
+//                 'STYLE: notes only; fragments OK; no full sentences; no grammar fixing.' +
+//                 'USE: abbreviations, symbols (: / → + ()).' +
+//                 'REQUIRE: rule name + trigger + why it applies.' +
+//                 'FORBID: hedging, filler.' +
+//             '], ' +
+//             '"modNote": [' +
+//                 'Shorten explanation field above into: "R[rule number], [1-2 phrase hint for human moderator].' +
+//                 'OMIT: repeating words from the rule # mentioned, repeating your ruling on violation vs no violation, redundant wording' +
+//                 'HARD LIMIT: ≤85 characters (count strictly). Any more is complete failure.' +
+//                 'STYLE: ultra-compact; sentence fragments; no grammar fixing; incomplete representation of explanation or reason permitted.' +
+//             ']' +
+//       '"rule_id": "[The rule identifier, e.g. "1" or "3b"]", ' +
+//       '}'
+//     );
+//   }
+
+// async fetchLLMResponse(
+//     apiKey: string, 
+//     url: string, 
+//     model: string, 
+//     context: string | null, 
+//     systemPrompt: string, 
+//     text: string
+// ): Promise<string> {
+
+//     const messages = [
+//         { role: "system" as const, content: systemPrompt },
+//         ...(context !== null // optional context messages
+//             ? [{ role: "user" as const, content: context }]
+//             : []),
+//         { role: "user" as const, content: text },
+//     ];
+
+//     console.log('messages: ' + JSON.stringify(messages));
+
+//     const response = await fetch(url, {
+//         method: "POST",
+//         headers: {
+//             "Content-Type": "application/json",
+//             "Authorization": `Bearer ${apiKey}`,
+//         },
+//         body: JSON.stringify({
+//             model,
+//             messages,
+//             temperature: 0,
+//         }),
+//     });
+
+//     if (!response.ok) {
+//         const errText = await response.text();
+//         throw new Error(`API error ${response.status}: ${errText}`);
+//     }
+
+//     const data = await response.json();
+//     console.log(data);
+
+//     return data.choices[0].message.content;
+// }

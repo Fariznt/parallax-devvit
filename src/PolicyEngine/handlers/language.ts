@@ -1,7 +1,7 @@
 import type { EvaluationState, Policy } from "../types.js";
-import { assertRegexCheck } from "../validator.js";
+import { assertLanguageCheck } from "../validator.js";
 
-export function evalRegex({
+export function evalLanguage({
   evalState, // evaluation state (info accumulator)
 	policyNode, // the node this was called for
 	nextCheck, // function to do checks on a child node
@@ -21,5 +21,5 @@ export function evalRegex({
   history?: string[] | null;
   apiKey?: string;
 }): void {
-	console.warn('Regex nodes are not implemented')
+	console.warn('Language nodes are not implemented')
 }
