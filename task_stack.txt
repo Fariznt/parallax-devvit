@@ -1,20 +1,62 @@
-
-test bananas
-get llm minimal example running through single eval
+do a proper fix of the hacked-together fix from last night for the import issue
+deal with addressing conceptually and in arguments
+    take parent address out of EvaluationState and keep as separate arg? rename evaluationstate accordingly, since 
+    arguably its not all of the state?
+write the evaluation recursion function  (dont forget to complete type definition)
+get function annotations generated for the evaluateHelper function
+do llm node definition
+test yaml_parser
+do rest of the node definitions
 persistent storage of action information: full logging, modmails
-migrate nodes classes
-
-
 make sure policy changing workflow makes sense (dont want to be using old policy, want maximum ease)
-
-
 add function header comments
+
+routing reports?
 
 Future
 1. support for posts, not just comments (image understanding? at least route title as a comment)
 2. switch to yaml -> json conversion
 3. check compatibility with other apis
+4. consider migration to web-style when functional (high priority due to resume significance)
+    allows UI for policy definition + UI action into reddit's interface for mods (ex. get trace) + webdev credibility
+5. wrapping this is fundamental https://platform.openai.com/docs/guides/moderation?utm_source=chatgpt.com
+6. incorporate use of post history
 
 notes for me:
 devvit settings set apiKey for setting apiKey
 everything else set in mod tools
+severity will be the closest upstream severity defined
+
+
+
+policy traversal will be like this:
+
+how about the traversal only produces a trace object with various info in it.
+ one info is whether violation has occured (yet), other is what llm calls to queue. 
+ if there are calls to queue, we use them and change the violation has occurred thing 
+ if needed. once trace is done being generated, we extract the violation / no violation
+  and return that along with the entire trace
+
+figure out what im going to do in terms of tree representation. if decide against batch processing need to indicate in my architecture files
+    these architectural decisions depend on the role this plays in the larger system
+    perhaps: deterministic obvious removes (silent). removes + modmail. and non removes.
+        i could keep the policyengine agnostic to this 3 way triage and do only 2 way. examine the trace, and llm involvement
+        leads to modmail.
+        So for r/izlam:
+        final:
+        all comments -> run through evaluation tree -> removed or not removed. if removed -> escalate to modmail with trace info
+        report -> run through llm node -> remove or not removed. make removal sensitive/safe; if removed escalate to modmail else silent delete
+        proto:
+        all modqueue items -> run through llm -> trivial removed
+
+
+        how can i deploy an automoderator 2nd phase version without writing much extra code that would be directly used in the final version?
+            final version needs to be able to interact with modmail anyweayws and actually simply modmail event read + archive probably not too complicated, if feasible.
+            i should rush early approval. then slowly work on building a proper engine that can be used elsewhere
+
+theres a contention between having NOT and having deferred checks
+    unless i can flip the semantic..... which is awkward
+theres also awkwardness with deferred checks + not
+    negate the interpretation of the deferred result
+
+

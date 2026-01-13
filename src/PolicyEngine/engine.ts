@@ -13,9 +13,11 @@ import {
 	NodeEvaluator,
 	EvaluationState,
 } from "./types.js";
-import * as nodeEvaluators from "./handlers/index.js";
-import { isPolicy } from "./validator.js"
+import * as _nodeEvaluators from "./handlers/index.js"; // hack-fix
+import { assertPolicy } from "./validator.js"
 
+const nodeEvaluators = // hack-fix of an import issue; TODO: do proper fix
+  ((_nodeEvaluators as any).default ?? _nodeEvaluators) as typeof _nodeEvaluators;
 
 export class PolicyEngine {
 
@@ -39,91 +41,18 @@ export class PolicyEngine {
     baseUrl: string; // PolicyEngine works with any OpenAI-compatible endpoint ex. OpenRouter
     apiKey?: string | undefined;
   }) {
-		if (isPolicy(opts.policyJson)) {
-			this.policyRoot = opts.policyJson as Policy;
-			console.log("PolicyEngine initialized with valid policyJson: " + JSON.stringify(this.policyRoot));
-		} else {
-			throw new Error("Provided policyJson is not a valid Policy.");
-		}
+		assertPolicy(opts.policyJson)
+		this.policyRoot = opts.policyJson as Policy
 
     this.model = opts.modelName;
     this.baseUrl = opts.baseUrl.replace(/\/+$/, "");
     this.apiKey = (opts.apiKey);
   }
 
-  private buildSystemPrompt(): string {
-    //  TODO rewrite to use policy later
-    return (
-      'Evaluate the target message on whether it violates the policy (any context provided may or may not be relevant):' +
-      '1. Do not mention the word bananas explicitly.\n. ' +
-      'Your response should be in strict JSON format with no newlines, markdown, backticks. You MUST output NO other text beyond ' +
-      'JSON text in this format, where the bracketed text is replaced by you: ' +
-      '{ ' +
-      '"violation": [true OR false], ' +
-      '"confidence": [A value 0.00 to 1.00 corresponding to your confidence percentage, ' +
-      'where a higher value means higher confidence in your decision], ' +
-			'"explanation": [' +
-				'Write a policy-grounded explanation.' +
-				'STYLE: notes only; fragments OK; no full sentences; no grammar fixing.' +
-				'USE: abbreviations, symbols (: / → + ()).' +
-				'REQUIRE: rule name + trigger + why it applies.' +
-				'FORBID: hedging, filler.' +
-			'], ' +
-			'"modNote": [' +
-				'Shorten explanation field above into: "R[rule number], [1-2 phrase hint for human moderator].' +
-				'OMIT: repeating words from the rule # mentioned, repeating your ruling on violation vs no violation, redundant wording' +
-				'HARD LIMIT: ≤85 characters (count strictly). Any more is complete failure.' +
-				'STYLE: ultra-compact; sentence fragments; no grammar fixing; incomplete representation of explanation or reason permitted.' +
-			']' +
-      '"rule_id": "[The rule identifier, e.g. "1" or "3b"]", ' +
-      '}'
-    );
-  }
-
-async fetchLLMResponse(
-	apiKey: string, 
-	url: string, 
-	model: string, 
-	context: string | null, 
-	systemPrompt: string, 
-	text: string
-): Promise<string> {
-
-	const messages = [
-		{ role: "system" as const, content: systemPrompt },
-		...(context !== null // optional context messages
-			? [{ role: "user" as const, content: context }]
-			: []),
-		{ role: "user" as const, content: text },
-	];
-
-	console.log('messages: ' + JSON.stringify(messages));
-
-	const response = await fetch(url, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			"Authorization": `Bearer ${apiKey}`,
-		},
-		body: JSON.stringify({
-			model,
-			messages,
-			temperature: 0,
-		}),
-	});
-
-	if (!response.ok) {
-		const errText = await response.text();
-		throw new Error(`API error ${response.status}: ${errText}`);
-	}
-
-	const data = await response.json();
-	console.log(data);
-
-	return data.choices[0].message.content;
-}
-
-// TODO: WRITE ANNOTATION FOR THIS FUNCTION. RN ITS UGLY
+/**
+ * 
+ * @param param0 
+ */
 evaluateHelper(
   {
 		evalState,
@@ -143,27 +72,41 @@ evaluateHelper(
     apiKey?: string;
   }
 ): void {
-	function getDispatchKey(node: unknown): keyof typeof PolicyEngine.nodeEvaluators {
-		const o = node as Record<string, unknown>;
-
-		if ("any_of" in o) return "any_of";
-		if ("all_of" in o) return "all_of";
-		if ("not" in o) return "not";
+	/**
+	 * Gets key used for indexing into PolicyEngine.nodeEvaluators appropriately.
+	 * @param node 
+	 * @returns the key of the evaluation function associated with this node type.
+	 */
+	function getDispatchKey(node: Policy): keyof typeof PolicyEngine.nodeEvaluators {
+		if ("any_of" in node) return "any_of";
+		if ("all_of" in node) return "all_of";
+		if ("not" in node) return "not";
 
 		for (const k of Object.keys(PolicyEngine.nodeEvaluators) as Array<
 			keyof typeof PolicyEngine.nodeEvaluators
 		>) {
-			if (k in o) return k;
+			if (k in node) return k;
 		}
 
 		throw new Error(
-			`Unidentifiable predicate or combinator found in Policy object; keys=${Object.keys(o).join(",")}`
+			`Unidentifiable predicate or combinator found in Policy object; keys=${Object.keys(node).join(",")}`
 		);
 	}
 
-	function nextCheck(state: EvaluationState): void {
+	/**
+	 * Function called by a node evaluator on a node (its child) when doing a downstream
+	 * check is appropriate.
+	 * @param state The current state of evaluation (violation, execution trac, etc.e)
+	 * @param policyNode The next node/policy being evaluated, with information added to the same state
+	 */
+	function nextCheck(policyNode: Policy): void {
+		const key = getDispatchKey(policyNode);
+		console.log('Determined dispatch key: ' + key)
+		console.log('Dispatching to function: ' + PolicyEngine.nodeEvaluators[key])
 		PolicyEngine.nodeEvaluators[key]({
-				evalState: state,
+				evalState: evalState,
+				policyNode: policyNode,
+				nextCheck: nextCheck,
 				doShortCircuit: doShortCircuit, 
 				text: text, 
 				imageUrl: imageUrl, 
@@ -172,16 +115,7 @@ evaluateHelper(
 			});	
 	}
 
-  const key = getDispatchKey(evalState.policyNode);
-  return PolicyEngine.nodeEvaluators[key]({
-		evalState: evalState,
-		nextCheck: nextCheck,
-		doShortCircuit: doShortCircuit, 
-		text: text, 
-		imageUrl: imageUrl, 
-		history: history, 
-		apiKey: apiKey 
-	});
+	nextCheck(this.policyRoot)
 }
 
 async evaluate(
@@ -219,7 +153,6 @@ async evaluate(
 
 
 		let evalState: EvaluationState = {
-				policyNode: this.policyRoot, 
 				violations: [],
 				parentAddress: null,
 				trace: [], 
@@ -237,14 +170,16 @@ async evaluate(
 		});
 
 
-		result = { violation: false , explanation: null, modNote: null }; // temp. define properly using trace later
+	const PLACEHOLDER_EVALUATION_RESULT: EvaluationResult = {
+		violations: [],
+		violation: false,
+		modNote: "",
+		trace: [],
+		shortCircuit: false,
+	};
 		
-		return {
-			remove: result.violation,
-			explanation: result.explanation,
-			modNote: result.modNote,
-			trace: trace
-		};
+		// temp return
+		return PLACEHOLDER_EVALUATION_RESULT
   }
 
 }

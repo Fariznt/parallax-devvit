@@ -1,0 +1,225 @@
+import { Policy, SafetyCategory, SafetyRule } from "./types.js";
+
+export const PREDICATE_NAMES = [
+	"regex_check",
+	"safety_check",
+	"semantic_check",
+	"language_check",
+] as const;
+
+export const COMBINATOR_NAMES = [
+	"any_of",
+	"all_of",
+	"not",
+] as const;
+
+export const SAFETY_CATEGORIES = new Set<SafetyCategory>([
+	"sexual",
+	"sexual/minors",
+	"harassment",
+	"harassment/threatening",
+	"hate",
+	"hate/threatening",
+	"illicit",
+	"illicit/violent",
+	"self-harm",
+	"self-harm/intent",
+	"self-harm/instructions",
+	"violence",
+	"violence/graphic",
+]);
+
+function err(path: string, msg: string): never {
+	throw new Error(`${path}: ${msg}`);
+}
+
+function assertObject(x: unknown, path: string): asserts x is Record<string, unknown> {
+	if (typeof x !== "object" || x === null) err(path, "expected object");
+}
+
+function assertString(x: unknown, path: string): asserts x is string {
+	if (typeof x !== "string") err(path, "expected string");
+}
+
+function assertNumber(x: unknown, path: string): asserts x is number {
+	if (typeof x !== "number") err(path, "expected number");
+}
+
+function assertArray(x: unknown, path: string): asserts x is unknown[] {
+	if (!Array.isArray(x)) err(path, "expected array");
+}
+
+function nodeLabel(o: Record<string, unknown>): string {
+	if (typeof o.name === "string" && o.name.length > 0) return o.name;
+
+	const comb = COMBINATOR_NAMES.find(k => k in o);
+	if (comb) return comb;
+
+	const pred = PREDICATE_NAMES.find(k => k in o);
+	if (pred) return pred;
+
+	return "policy";
+}
+
+function assertSafetyCategory(x: unknown, path: string): asserts x is SafetyCategory {
+	assertString(x, path);
+	if (!SAFETY_CATEGORIES.has(x as SafetyCategory)) err(path, `invalid SafetyCategory "${x}"`);
+}
+
+function assertSafetyRule(x: unknown, path: string): asserts x is SafetyRule {
+	assertObject(x, path);
+
+	assertSafetyCategory(x.category, `${path}.category`);
+
+	const assertRange = (r: unknown, rPath: string) => {
+		assertArray(r, rPath);
+		if (r.length !== 2) err(rPath, "expected tuple [number, number]");
+		assertNumber(r[0], `${rPath}[0]`);
+		assertNumber(r[1], `${rPath}[1]`);
+		if (r[0] < 0 || r[0] > 1) err(`${rPath}[0]`, "expected 0..1");
+		if (r[1] < 0 || r[1] > 1) err(`${rPath}[1]`, "expected 0..1");
+		if (r[0] > r[1]) err(rPath, "expected low <= high");
+	};
+
+	const hasEsc = "escalation_range" in x;
+	const hasViol = "violation_range" in x;
+	if (!hasEsc && !hasViol) err(path, "expected escalation_range and/or violation_range");
+
+	if (hasEsc) assertRange(x.escalation_range, `${path}.escalation_range`);
+	if (hasViol) assertRange(x.violation_range, `${path}.violation_range`);
+}
+
+export function assertRegexCheck(node: Record<string, unknown>, path: string): void {
+	const v = node.regex_check;
+	assertObject(v, `${path}.regex_check`);
+
+	assertArray(v.patterns, `${path}.regex_check.patterns`);
+	v.patterns.forEach((p, i) => assertString(p, `${path}.regex_check.patterns[${i}]`));
+
+	if ("flags" in v && v.flags !== undefined) assertString(v.flags, `${path}.regex_check.flags`);
+}
+
+export function assertSafetyCheck(node: Record<string, unknown>, path: string): void {
+	const v = node.safety_check;
+	assertObject(v, `${path}.safety_check`);
+
+if (v.scope !== undefined) {
+  assertString(v.scope, `${path}.safety_check.scope`);
+  if (v.scope !== "text" && v.scope !== "image" && v.scope !== "both")
+    err(`${path}.safety_check.scope`, `expected "text" | "image" | "both"`);
+} else {
+  v.scope = "both";
+}
+
+	const hasCats = "categories" in v;
+	const hasRules = "rules" in v;
+	if ((hasCats ? 1 : 0) + (hasRules ? 1 : 0) !== 1)
+		err(`${path}.safety_check`, "expected exactly one of categories or rules");
+
+	if (hasCats) {
+		assertArray(v.categories, `${path}.safety_check.categories`);
+		v.categories.forEach((c, i) => assertSafetyCategory(c, `${path}.safety_check.categories[${i}]`));
+	} else {
+		assertArray(v.rules, `${path}.safety_check.rules`);
+		v.rules.forEach((r, i) => assertSafetyRule(r, `${path}.safety_check.rules[${i}]`));
+	}
+}
+
+export function assertSemanticCheck(node: Record<string, unknown>, path: string): void {
+	const v = node.semantic_check;
+	assertObject(v, `${path}.semantic_check`);
+	assertString(v.instruction, `${path}.semantic_check.instruction`);
+}
+
+export function assertLanguageCheck(node: Record<string, unknown>, path: string): void {
+	const v = node.language_check;
+	assertObject(v, `${path}.language_check`);
+
+	assertArray(v.allowed, `${path}.language_check.allowed`);
+	v.allowed.forEach((s, i) => assertString(s, `${path}.language_check.allowed[${i}]`));
+}
+
+export function assertAnyOf(node: Record<string, unknown>, path: string): void {
+	const v = node.any_of;
+	assertArray(v, `${path}.any_of`);
+
+	v.forEach((p, i) => {
+		const tmp = `${path}.any_of[${i}]`;
+		assertObject(p, tmp);
+		assertPolicy(p, `${path}/${nodeLabel(p)}[${i}]`);
+	});
+}
+
+export function assertAllOf(node: Record<string, unknown>, path: string): void {
+	const v = node.all_of;
+	assertArray(v, `${path}.all_of`);
+
+	v.forEach((p, i) => {
+		const tmp = `${path}.all_of[${i}]`;
+		assertObject(p, tmp);
+		assertPolicy(p, `${path}/${nodeLabel(p)}[${i}]`);
+	});
+}
+
+export function assertNot(node: Record<string, unknown>, path: string): void {
+	const v = node.not;
+
+	if (Array.isArray(v)) {
+		if (v.length !== 1) err(`${path}.not`, "expected single-element array");
+
+		const tmp = `${path}.not[0]`;
+		assertObject(v[0], tmp);
+		return assertPolicy(v[0], `${path}/${nodeLabel(v[0])}[0]`);
+	}
+
+	const tmp = `${path}.not`;
+	assertObject(v, tmp);
+	return assertPolicy(v, `${path}/${nodeLabel(v)}`);
+}
+
+/**
+ * Type validation for Policy objects. Also serves as syntax validation of user-inputted policy
+ * under the DSL defined for policy-making. Errors if x is not a Policy
+ * @param x (Potential) policy object
+ * @returns True if x is correctly shaped for a Policy object
+ */
+export function assertPolicy(x: unknown, path = "policy"): asserts x is Policy {
+	assertObject(x, path);
+
+	// optional metadata
+	if ("name" in x && x.name !== undefined) assertString(x.name, `${path}.name`);
+	if ("next_check" in x && x.next_check !== undefined) {
+		const tmp = `${path}.next_check`;
+		assertObject(x.next_check, tmp);
+		assertPolicy(x.next_check, `${path}/${nodeLabel(x.next_check)}`);
+	}
+	if ("severity" in x && x.severity !== undefined) {
+		assertNumber(x.severity, `${path}.severity`);
+	}
+
+	// combinator/logic nodes
+	if ("any_of" in x) return assertAnyOf(x, path);
+	if ("all_of" in x) return assertAllOf(x, path);
+	if ("not" in x) return assertNot(x, path);
+
+	// predicate/evaluation nodes
+	const presentChecks = PREDICATE_NAMES.filter(k => k in x);
+	if (presentChecks.length !== 1) err(path, `expected exactly 1 predicate (${PREDICATE_NAMES.join(", ")})`);
+
+	const k = presentChecks[0]!;
+	if (k === "regex_check") return assertRegexCheck(x, path);
+	if (k === "safety_check") return assertSafetyCheck(x, path);
+	if (k === "semantic_check") return assertSemanticCheck(x, path);
+	if (k === "language_check") return assertLanguageCheck(x, path);
+
+	err(path, `An error occurred during input Policy validation. Unimplemented validation of new predicate?`);
+}
+
+export function isPolicy(x: unknown): x is Policy {
+	try {
+		assertPolicy(x);
+		return true;
+	} catch {
+		return false;
+	}
+}
