@@ -1,7 +1,4 @@
-do a proper fix of the hacked-together fix from last night for the import issue
-deal with addressing conceptually and in arguments
-    take parent address out of EvaluationState and keep as separate arg? rename evaluationstate accordingly, since 
-    arguably its not all of the state?
+mismatch between validator and nextcheck addressing + nextcheck as a concept does not account for combinators
 write the evaluation recursion function  (dont forget to complete type definition)
 get function annotations generated for the evaluateHelper function
 do llm node definition
@@ -14,6 +11,7 @@ add function header comments
 routing reports?
 
 Future
+0. catch errors in main.ts, log, and dont take action
 1. support for posts, not just comments (image understanding? at least route title as a comment)
 2. switch to yaml -> json conversion
 3. check compatibility with other apis
@@ -21,6 +19,8 @@ Future
     allows UI for policy definition + UI action into reddit's interface for mods (ex. get trace) + webdev credibility
 5. wrapping this is fundamental https://platform.openai.com/docs/guides/moderation?utm_source=chatgpt.com
 6. incorporate use of post history
+7. validate only one check per level (rn takes the cheapest one)
+8. hella documentation
 
 notes for me:
 devvit settings set apiKey for setting apiKey

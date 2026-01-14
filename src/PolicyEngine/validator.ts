@@ -29,6 +29,22 @@ export const SAFETY_CATEGORIES = new Set<SafetyCategory>([
 	"violence/graphic",
 ]);
 
+export type AnyOfNode = Policy & { any_of: Policy[] };
+export type AllOfNode = Policy & { all_of: Policy[] };
+export type NotNode   = Policy & { not: Policy[] | Policy };
+
+export type RegexCheckNode = { regex_check: { patterns: string[]; flags?: string } };
+export type SafetyCheckNode = {
+	safety_check: {
+		scope?: "text" | "image" | "both";
+	} & (
+		| { categories: SafetyCategory[] }
+		| { rules: SafetyRule[] }
+	);
+};
+export type SemanticCheckNode = { semantic_check: { instruction: string } };
+export type LanguageCheckNode = { language_check: { allowed: string[] } };
+
 function err(path: string, msg: string): never {
 	throw new Error(`${path}: ${msg}`);
 }
@@ -89,7 +105,7 @@ function assertSafetyRule(x: unknown, path: string): asserts x is SafetyRule {
 	if (hasViol) assertRange(x.violation_range, `${path}.violation_range`);
 }
 
-export function assertRegexCheck(node: Record<string, unknown>, path: string): void {
+export function assertRegexCheck(node: Record<string, unknown>, path: string): asserts node is RegexCheckNode {
 	const v = node.regex_check;
 	assertObject(v, `${path}.regex_check`);
 
@@ -99,14 +115,14 @@ export function assertRegexCheck(node: Record<string, unknown>, path: string): v
 	if ("flags" in v && v.flags !== undefined) assertString(v.flags, `${path}.regex_check.flags`);
 }
 
-export function assertSafetyCheck(node: Record<string, unknown>, path: string): void {
+export function assertSafetyCheck(node: Record<string, unknown>, path: string): asserts node is SafetyCheckNode {
 	const v = node.safety_check;
 	assertObject(v, `${path}.safety_check`);
 
 	if (v.scope !== undefined) {
-	assertString(v.scope, `${path}.safety_check.scope`);
-	if (v.scope !== "text" && v.scope !== "image" && v.scope !== "both")
-		err(`${path}.safety_check.scope`, `expected "text" | "image" | "both"`);
+		assertString(v.scope, `${path}.safety_check.scope`);
+		if (v.scope !== "text" && v.scope !== "image" && v.scope !== "both")
+			err(`${path}.safety_check.scope`, `expected "text" | "image" | "both"`);
 	}
 
 	const hasCats = "categories" in v;
@@ -123,13 +139,13 @@ export function assertSafetyCheck(node: Record<string, unknown>, path: string): 
 	}
 }
 
-export function assertSemanticCheck(node: Record<string, unknown>, path: string): void {
+export function assertSemanticCheck(node: Record<string, unknown>, path: string): asserts node is SemanticCheckNode {
 	const v = node.semantic_check;
 	assertObject(v, `${path}.semantic_check`);
 	assertString(v.instruction, `${path}.semantic_check.instruction`);
 }
 
-export function assertLanguageCheck(node: Record<string, unknown>, path: string): void {
+export function assertLanguageCheck(node: Record<string, unknown>, path: string): asserts node is LanguageCheckNode {
 	const v = node.language_check;
 	assertObject(v, `${path}.language_check`);
 
@@ -137,7 +153,7 @@ export function assertLanguageCheck(node: Record<string, unknown>, path: string)
 	v.allowed.forEach((s, i) => assertString(s, `${path}.language_check.allowed[${i}]`));
 }
 
-export function assertAnyOf(node: Record<string, unknown>, path: string): void {
+export function assertAnyOf(node: Record<string, unknown>, path: string): asserts node is AnyOfNode {
 	const v = node.any_of;
 	assertArray(v, `${path}.any_of`);
 
@@ -148,7 +164,7 @@ export function assertAnyOf(node: Record<string, unknown>, path: string): void {
 	});
 }
 
-export function assertAllOf(node: Record<string, unknown>, path: string): void {
+export function assertAllOf(node: Record<string, unknown>, path: string): asserts node is AllOfNode {
 	const v = node.all_of;
 	assertArray(v, `${path}.all_of`);
 
@@ -159,7 +175,7 @@ export function assertAllOf(node: Record<string, unknown>, path: string): void {
 	});
 }
 
-export function assertNot(node: Record<string, unknown>, path: string): void {
+export function assertNot(node: Record<string, unknown>, path: string): asserts node is NotNode {
 	const v = node.not;
 
 	if (Array.isArray(v)) {

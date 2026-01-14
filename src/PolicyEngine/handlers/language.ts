@@ -2,11 +2,10 @@ import type { EvaluationState, Policy } from "../types.js";
 import { assertLanguageCheck } from "../validator.js";
 
 export function evalLanguage({
-  evalState, // evaluation state (info accumulator)
-	policyNode, // the node this was called for
-	nextCheck, // function to do checks on a child node
-  // content info and evaluation specifications
-  doShortCircuit, // whether we do short-circuiting in logic nodes
+  evalState,
+	policyNode,
+	doNextCheck, 
+  doShortCircuit, 
   text,
   imageUrl,
   history,
@@ -14,7 +13,8 @@ export function evalLanguage({
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
-	nextCheck: (node: Policy) => void;
+	nodeAddress: string;
+	doNextCheck: (node: Policy, nodeAddress: string) => void;
   doShortCircuit: boolean | null; 
   text: string;
   imageUrl?: string | null;

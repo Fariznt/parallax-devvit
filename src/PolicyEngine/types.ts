@@ -121,7 +121,7 @@ export type EvaluationResult = {
 export type NodeEvaluator = ({
   evalState, // evaluation state (info accumulator)
 	policyNode, // the node this was called for
-	doNextCheck, // function to do checks on a child node
+	evalNode, // function to do checks on a child node
   // content info and evaluation specifications
   doShortCircuit, // whether we do short-circuiting in logic nodes
   text,
@@ -132,7 +132,7 @@ export type NodeEvaluator = ({
   evalState: EvaluationState;
 	policyNode: Policy;
 	nodeAddress: string;
-	doNextCheck: (node: Policy, nodeAddress: string) => void;
+	evalNode: (node: Policy, parentAddress: string) => void;
   doShortCircuit: boolean | null; 
   text: string;
   imageUrl?: string | null;
