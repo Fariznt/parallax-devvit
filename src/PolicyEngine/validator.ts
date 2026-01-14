@@ -103,13 +103,11 @@ export function assertSafetyCheck(node: Record<string, unknown>, path: string): 
 	const v = node.safety_check;
 	assertObject(v, `${path}.safety_check`);
 
-if (v.scope !== undefined) {
-  assertString(v.scope, `${path}.safety_check.scope`);
-  if (v.scope !== "text" && v.scope !== "image" && v.scope !== "both")
-    err(`${path}.safety_check.scope`, `expected "text" | "image" | "both"`);
-} else {
-  v.scope = "both";
-}
+	if (v.scope !== undefined) {
+	assertString(v.scope, `${path}.safety_check.scope`);
+	if (v.scope !== "text" && v.scope !== "image" && v.scope !== "both")
+		err(`${path}.safety_check.scope`, `expected "text" | "image" | "both"`);
+	}
 
 	const hasCats = "categories" in v;
 	const hasRules = "rules" in v;
@@ -209,8 +207,10 @@ export function assertPolicy(x: unknown, path = "policy"): asserts x is Policy {
 	const k = presentChecks[0]!;
 	if (k === "regex_check") return assertRegexCheck(x, path);
 	if (k === "safety_check") return assertSafetyCheck(x, path);
-	if (k === "semantic_check") return assertSemanticCheck(x, path);
 	if (k === "language_check") return assertLanguageCheck(x, path);
+	if (k === "semantic_check") return assertSemanticCheck(x, path);
+
+	// new checks added here
 
 	err(path, `An error occurred during input Policy validation. Unimplemented validation of new predicate?`);
 }

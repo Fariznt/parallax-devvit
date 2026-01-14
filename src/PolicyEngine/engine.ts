@@ -1,4 +1,4 @@
-// PolicyEngine.ts
+// ts
 
 import { KeyValueStorage } from "@devvit/public-api/apis/key-value-storage/KeyValueStorage.js";
 import {
@@ -13,23 +13,10 @@ import {
 	NodeEvaluator,
 	EvaluationState,
 } from "./types.js";
-import * as _nodeEvaluators from "./handlers/index.js"; // hack-fix
+import { nodeEvaluators, getDispatchKey } from "./handlers/index.js"; // hack-fix
 import { assertPolicy } from "./validator.js"
 
-const nodeEvaluators = // hack-fix of an import issue; TODO: do proper fix
-  ((_nodeEvaluators as any).default ?? _nodeEvaluators) as typeof _nodeEvaluators;
-
 export class PolicyEngine {
-
-  private static readonly nodeEvaluators: Record<string, NodeEvaluator> = {
-    any_of: nodeEvaluators.evalAnyOf,
-    all_of: nodeEvaluators.evalAllOf,
-    not: nodeEvaluators.evalNot,
-    regex: nodeEvaluators.evalRegex,
-    semantic: nodeEvaluators.evalSemantic,
-    language: nodeEvaluators.evalLanguage,
-    safety: nodeEvaluators.evalSafety,
-  };
   private readonly apiKey: string | undefined; // may be provided at evaluation time
   private readonly baseUrl: string;
   private readonly model: string;
@@ -38,7 +25,7 @@ export class PolicyEngine {
   constructor(opts: {
     policyJson: Record<string, unknown>;
     modelName: string;
-    baseUrl: string; // PolicyEngine works with any OpenAI-compatible endpoint ex. OpenRouter
+    baseUrl: string; // works with any OpenAI-compatible endpoint ex. OpenRouter
     apiKey?: string | undefined;
   }) {
 		assertPolicy(opts.policyJson)
@@ -57,7 +44,7 @@ evaluateHelper(
   {
 		evalState,
 		doShortCircuit,
-    text,
+		text,
 		imageUrl,
     history,
     apiKey,
@@ -72,41 +59,42 @@ evaluateHelper(
     apiKey?: string;
   }
 ): void {
-	/**
-	 * Gets key used for indexing into PolicyEngine.nodeEvaluators appropriately.
-	 * @param node 
-	 * @returns the key of the evaluation function associated with this node type.
-	 */
-	function getDispatchKey(node: Policy): keyof typeof PolicyEngine.nodeEvaluators {
-		if ("any_of" in node) return "any_of";
-		if ("all_of" in node) return "all_of";
-		if ("not" in node) return "not";
 
-		for (const k of Object.keys(PolicyEngine.nodeEvaluators) as Array<
-			keyof typeof PolicyEngine.nodeEvaluators
-		>) {
-			if (k in node) return k;
+
+
+	/**
+	 * Function called by a node evaluator on the node it was called on when doing a downstream
+	 * check is appropriate.
+	 * @param parentNode The node with a .next_check that this function will execute
+	 * @param parentAddress The address of parentNode
+	 */
+	function doNextCheck(parentNode: Policy, parentAddress?: string): void {
+		const childNode = parentNode.next_check;
+		if (!childNode) {
+			throw new Error("Next check called on node with no downstream check. \
+				Verify this node has .next_check field")
 		}
 
-		throw new Error(
-			`Unidentifiable predicate or combinator found in Policy object; keys=${Object.keys(node).join(",")}`
-		);
-	}
-
-	/**
-	 * Function called by a node evaluator on a node (its child) when doing a downstream
-	 * check is appropriate.
-	 * @param state The current state of evaluation (violation, execution trac, etc.e)
-	 * @param policyNode The next node/policy being evaluated, with information added to the same state
-	 */
-	function nextCheck(policyNode: Policy): void {
-		const key = getDispatchKey(policyNode);
+		// constructs address of childNode from parentAddress as <child name or type>/parentAddress
+		// root has address policy/<name or type> e.g. policy/all_of
+		const nodeLabel = (policyNode: Policy): string => {
+			if (typeof policyNode.name === "string" && policyNode.name.length > 0) {
+				return policyNode.name;
+			}
+			const k = getDispatchKey(policyNode);
+			return String(k);
+		};
+		const base = parentAddress ?? "policy";
+		const childAddress = `${base}/${nodeLabel(childNode)}`;
+		
+		const key = getDispatchKey(childNode);
 		console.log('Determined dispatch key: ' + key)
-		console.log('Dispatching to function: ' + PolicyEngine.nodeEvaluators[key])
-		PolicyEngine.nodeEvaluators[key]({
+		console.log('Dispatching to function: ' + nodeEvaluators[key])
+		nodeEvaluators[key]({
 				evalState: evalState,
-				policyNode: policyNode,
-				nextCheck: nextCheck,
+				policyNode: childNode,
+				nodeAddress: childAddress, 
+				doNextCheck: doNextCheck,
 				doShortCircuit: doShortCircuit, 
 				text: text, 
 				imageUrl: imageUrl, 
@@ -115,7 +103,7 @@ evaluateHelper(
 			});	
 	}
 
-	nextCheck(this.policyRoot)
+	doNextCheck(this.policyRoot)
 }
 
 async evaluate(
