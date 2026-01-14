@@ -93,13 +93,14 @@ export type NodeIdentifier = { // generated at evaluation time lazily
 	// uniqueness is not enforced (naming recommended for adjacent duplicate node types ex. who regexes under an any_of)
 	address: string;
 	type: NodeType;
+  result: boolean; // whether the check passed at the independent level
 }
 
 // Policy violation representation used in output
 export type Violation = {
 	node: NodeIdentifier;
 	explanation: string;
-	// optional severity score, if applicable (useful for fully autonomous moderation w/ shortCircuit off
+	// optional severity score, if applicable (useful for fully autonomous moderation w/ isComprehensive off)
 	severity: number | undefined; 
 }
 
@@ -123,7 +124,7 @@ export type NodeEvaluator = ({
 	policyNode, // the node this was called for
 	evalNode, // function to do checks on a child node
   // content info and evaluation specifications
-  doShortCircuit, // whether we do short-circuiting in logic nodes
+  doEarlyExit, // whether we do short-circuiting in all_of nodes or accumulate ALL violations
   text,
   imageUrl,
   history,
@@ -133,7 +134,7 @@ export type NodeEvaluator = ({
 	policyNode: Policy;
 	nodeAddress: string;
 	evalNode: (node: Policy, parentAddress: string) => void;
-  doShortCircuit: boolean | null; 
+  doEarlyExit: boolean | null; 
   text: string;
   imageUrl?: string | null;
   history?: string[] | null;
@@ -146,7 +147,7 @@ export type EvaluationState = {
 	// used to build current node address in the form <node type>@<parent address>
 	trace: NodeIdentifier[]; // record of execution through policy tree
 	// whether short-circuiting has already occurred in this evaluation
-	shortCircuitOccurred: boolean; 
+	earlyExit: boolean; 
 	// With short circuiting off, LLM calls can be batched outside of this helper. 
 	// This is a list of expensive checks to do deferred for batching in the parent function.
 	deferredChecks: DeferredCheck[]; 

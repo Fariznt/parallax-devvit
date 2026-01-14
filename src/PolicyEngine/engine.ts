@@ -61,7 +61,7 @@ evaluateHelper(
 	const evalState: EvaluationState = {
 		violations: [],
 		trace: [], 
-		shortCircuitOccurred: false,
+		earlyExit: false,
 		deferredChecks: []
 	}
 

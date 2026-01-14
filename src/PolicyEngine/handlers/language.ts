@@ -2,10 +2,10 @@ import type { EvaluationState, Policy } from "../types.js";
 import { assertLanguageCheck } from "../validator.js";
 
 export function evalLanguage({
-  evalState,
-	policyNode,
-	doNextCheck, 
-  doShortCircuit, 
+  evalState, 
+	policyNode, 
+	evalNode,
+  doEarlyExit, 
   text,
   imageUrl,
   history,
@@ -14,8 +14,8 @@ export function evalLanguage({
   evalState: EvaluationState;
 	policyNode: Policy;
 	nodeAddress: string;
-	doNextCheck: (node: Policy, nodeAddress: string) => void;
-  doShortCircuit: boolean | null; 
+	evalNode: (node: Policy, parentAddress: string) => void;
+  doEarlyExit: boolean | null; 
   text: string;
   imageUrl?: string | null;
   history?: string[] | null;
