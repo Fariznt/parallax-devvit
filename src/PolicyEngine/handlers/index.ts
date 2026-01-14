@@ -1,5 +1,4 @@
 
-
 import { NodeEvaluator, Policy } from "../types.js";
 import { evalAnyOf, evalAllOf, evalNot } from "./combinators.js";
 import { evalRegex } from "./regex.js";
@@ -25,6 +24,7 @@ export const nodeEvaluators: Record<string, NodeEvaluator> = {
     semantic: evalSemantic,
     language: evalLanguage,
     safety: evalSafety,
+    // new checks added here
   };
 
 const DISPATCH_KEYS = Object.keys(nodeEvaluators) as Array<keyof typeof nodeEvaluators>;

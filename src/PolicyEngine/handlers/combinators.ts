@@ -1,53 +1,45 @@
-import type { EvaluationState, Policy } from "../types.js";
+import type { EvaluationState, Policy, NodeIdentifier } from "../types.js";
 import { assertAnyOf, assertAllOf, assertNot } from "../validator.js";
-// TODO import asserts
-// TODO use `${path}/${nodeLabel(x.next_check)}`
 
 export function evalAllOf({
-  evalState, // evaluation state (info accumulator)
-	policyNode, // the node this was called for
-	nextCheck, // function to do checks on a child node
-  // content info and evaluation specifications
-  doShortCircuit, // whether we do short-circuiting in logic nodes
-  text,
-  imageUrl,
-  history,
-  apiKey,
+  evalState,
+	policyNode,
+  nodeAddress,
+	evalNode, 
+  doShortCircuit, 
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
-	nextCheck: (node: Policy) => void;
+	nodeAddress: string;
+	evalNode: (node: Policy, parentAddress: string) => void;
   doShortCircuit: boolean | null; 
-  text: string;
-  imageUrl?: string | null;
-  history?: string[] | null;
-  apiKey?: string;
 }): void {
+  assertAllOf(policyNode, nodeAddress);
 
-	// const id: NodeIdentifier = {
-	//     display_name: p.name,
-	//     address: (p.name ?? "all_of") + evalState.parentAddress
-	//     type: "all_of" 
-	// }
-	// // assertAnyOf(policyNode);
-	// const origViolationCount = evalState.violations.length
-	// for (p of policyNode.any_of) {
-	// 	nextCheck(p);
-	// 	if (evalState.violations.length > origViolationCount && doShortCircuit) {
-	// 		evalState.shortCircuitOccurred = true
-	// 		break
-	// 	}
-	// }
+	const origViolationCount = evalState.violations.length
 
+	for (const p of policyNode.all_of) {
+    evalNode(p, nodeAddress)
+		if (evalState.violations.length > origViolationCount && doShortCircuit) {
+			evalState.shortCircuitOccurred = true
+			break
+		}
+	}
 
+  const id: NodeIdentifier = {
+      display_name: policyNode.name,
+      address: nodeAddress,
+      type: "all_of" 
+  }
+  evalState.trace.push(id)
 }
 
 export function evalAnyOf({
-  evalState, // evaluation state (info accumulator)
-	policyNode, // the node this was called for
-	nextCheck, // function to do checks on a child node
-  // content info and evaluation specifications
-  doShortCircuit, // whether we do short-circuiting in logic nodes
+  evalState,
+	policyNode,
+  nodeAddress,
+	evalNode, 
+  doShortCircuit, 
   text,
   imageUrl,
   history,
@@ -55,22 +47,42 @@ export function evalAnyOf({
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
-	nextCheck: (node: Policy) => void;
+	nodeAddress: string;
+	evalNode: (node: Policy, parentAddress: string) => void;
   doShortCircuit: boolean | null; 
   text: string;
   imageUrl?: string | null;
   history?: string[] | null;
   apiKey?: string;
 }): void {
+  // assertAnyOf(policyNode, nodeAddress);
 
+  // // let oneSuccess = false;
+	// // const origViolationCount = evalState.violations.length
+	// // for (const p of policyNode.any_of) {
+  // //   evalNode(p, nodeAddress)
+	// // 	if (evalState.violations.length == origViolationCount) {
+	// // 		oneSuccess = true
+  // //     break;
+	// // 	} else if (evalState.violations.length == origViolationCount + 1) {
+  // //     // revert changes
+  // //     evalState.violation = false
+  // //   }
+	// // }
+
+  // const id: NodeIdentifier = {
+  //     display_name: policyNode.name,
+  //     address: nodeAddress,
+  //     type: "any_of" 
+  // }
+  // evalState.trace.push(id)
 }
 
 export function evalNot({
-  evalState, // evaluation state (info accumulator)
-	policyNode, // the node this was called for
-	nextCheck, // function to do checks on a child node
-  // content info and evaluation specifications
-  doShortCircuit, // whether we do short-circuiting in logic nodes
+  evalState,
+	policyNode,
+	evalNode, 
+  doShortCircuit, 
   text,
   imageUrl,
   history,
@@ -78,7 +90,8 @@ export function evalNot({
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
-	nextCheck: (node: Policy) => void;
+	nodeAddress: string;
+	evalNode: (node: Policy, parentAddress: string) => void;
   doShortCircuit: boolean | null; 
   text: string;
   imageUrl?: string | null;

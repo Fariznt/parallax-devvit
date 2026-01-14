@@ -42,15 +42,12 @@ export class PolicyEngine {
  */
 evaluateHelper(
   {
-		evalState,
 		doShortCircuit,
 		text,
 		imageUrl,
     history,
     apiKey,
   }: {
-		// evaluation state
-		evalState: EvaluationState,
 		// content info and evaluation specifications
 		doShortCircuit: boolean | null, // whether we do short-circuiting in logic nodes
     text: string;
@@ -59,42 +56,45 @@ evaluateHelper(
     apiKey?: string;
   }
 ): void {
-
-
+	// Init empty evaluation state---this will be mutated and carry the evaluation-related info
+	// through the whole evaluation process,
+	const evalState: EvaluationState = {
+		violations: [],
+		trace: [], 
+		shortCircuitOccurred: false,
+		deferredChecks: []
+	}
 
 	/**
 	 * Function called by a node evaluator on the node it was called on when doing a downstream
 	 * check is appropriate.
-	 * @param parentNode The node with a .next_check that this function will execute
-	 * @param parentAddress The address of parentNode
+	 * @param node The node with a .next_check that this function will execute
+	 * @param parentAddress The address of parentNode. If not given, node assumed to be root.
 	 */
-	function doNextCheck(parentNode: Policy, parentAddress?: string): void {
-		const childNode = parentNode.next_check;
-		if (!childNode) {
-			throw new Error("Next check called on node with no downstream check. \
-				Verify this node has .next_check field")
+	function evalNode(node: Policy, parentAddress?: string): void {
+		if (!node) {
+			throw new Error("evalNode called on nonexistent node")
 		}
-
-		// constructs address of childNode from parentAddress as <child name or type>/parentAddress
-		// root has address policy/<name or type> e.g. policy/all_of
+		
+		// construct address of childNode from parentAddress as `${parentAddress}/${nodeLabel(node)}`
+		// or policy/nodeLabel(node) for root
 		const nodeLabel = (policyNode: Policy): string => {
-			if (typeof policyNode.name === "string" && policyNode.name.length > 0) {
-				return policyNode.name;
-			}
-			const k = getDispatchKey(policyNode);
-			return String(k);
+			if (typeof policyNode.name === "string" && policyNode.name.length > 0) return policyNode.name;
+			const key = (Object.keys(nodeEvaluators) as string[]).find(k => k in policyNode);
+			if (key) return key;
+			return "policy";
 		};
 		const base = parentAddress ?? "policy";
-		const childAddress = `${base}/${nodeLabel(childNode)}`;
+		const nodeAddress = `${base}/${nodeLabel(node)}`
 		
-		const key = getDispatchKey(childNode);
+		const key = getDispatchKey(node);
 		console.log('Determined dispatch key: ' + key)
 		console.log('Dispatching to function: ' + nodeEvaluators[key])
 		nodeEvaluators[key]({
 				evalState: evalState,
-				policyNode: childNode,
-				nodeAddress: childAddress, 
-				doNextCheck: doNextCheck,
+				policyNode: node,
+				nodeAddress: nodeAddress, 
+				evalNode: evalNode,
 				doShortCircuit: doShortCircuit, 
 				text: text, 
 				imageUrl: imageUrl, 
@@ -103,7 +103,7 @@ evaluateHelper(
 			});	
 	}
 
-	doNextCheck(this.policyRoot)
+	evalNode(this.policyRoot)
 }
 
 async evaluate(
@@ -140,16 +140,9 @@ async evaluate(
     }
 
 
-		let evalState: EvaluationState = {
-				violations: [],
-				parentAddress: null,
-				trace: [], 
-				shortCircuitOccurred: false,
-				deferredChecks: []
-		}
+
 
 		this.evaluateHelper({ 
-			evalState,
 			doShortCircuit: shortCircuit, 
 			text: text, 
 			imageUrl:imageUrl, 

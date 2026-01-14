@@ -2,11 +2,10 @@ import type { EvaluationState, Policy } from "../types.js";
 import { assertSemanticCheck } from "../validator.js";
 
 export function evalSemantic({
-  evalState, // evaluation state (info accumulator)
-	policyNode, // the node this was called for
-	nextCheck, // function to do checks on a child node
-  // content info and evaluation specifications
-  doShortCircuit, // whether we do short-circuiting in logic nodes
+  evalState,
+	policyNode,
+	evalNode, 
+  doShortCircuit, 
   text,
   imageUrl,
   history,
@@ -14,7 +13,8 @@ export function evalSemantic({
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
-	nextCheck: (node: Policy) => void;
+	nodeAddress: string;
+	evalNode: (node: Policy, nodeAddress: string) => void;
   doShortCircuit: boolean | null; 
   text: string;
   imageUrl?: string | null;
