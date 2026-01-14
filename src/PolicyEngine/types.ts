@@ -1,4 +1,3 @@
-export type NodeType = "regex_check" | "safety_check" | "semantic_check" | "language_check" | "all_of" | "any_of" | "not"
 
 export type SafetyCategory =
   | "sexual"
@@ -47,6 +46,7 @@ export type NodeSpecification = {
 	} & SafetySpecification;
   semantic_check: { semantic: string };
 	language_check: { allowed: string[] }; // to be implemented using language.googleapis.com
+  // NEW CHECKS ADDED HERE
 };
 
 // A type of check of the content
@@ -80,6 +80,10 @@ export type DeferredCheck = {
 	rule: string;
 	negate: boolean // flipped by a NOT node
 }
+
+export type NodeType = 
+  | "regex_check" | "safety_check" | "semantic_check" 
+  | "language_check" | "all_of" | "any_of" | "not" // NEW CHECKS ADDED HERE
 
 // An identifier of nodes in the policy-tree generated lazily at evaluation time
 // Exists for humans to understand how policy evaluation occurred and details
@@ -117,7 +121,7 @@ export type EvaluationResult = {
 export type NodeEvaluator = ({
   evalState, // evaluation state (info accumulator)
 	policyNode, // the node this was called for
-	nextCheck, // function to do checks on a child node
+	doNextCheck, // function to do checks on a child node
   // content info and evaluation specifications
   doShortCircuit, // whether we do short-circuiting in logic nodes
   text,
@@ -127,7 +131,8 @@ export type NodeEvaluator = ({
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
-	nextCheck: (node: Policy) => void;
+	nodeAddress: string;
+	doNextCheck: (node: Policy, nodeAddress: string) => void;
   doShortCircuit: boolean | null; 
   text: string;
   imageUrl?: string | null;
@@ -139,7 +144,6 @@ export type EvaluationState = {
 	violations: Violation[]; // accumulated violations so far
 	// address of parent node, or null if at root; 
 	// used to build current node address in the form <node type>@<parent address>
-	parentAddress: string | null; 
 	trace: NodeIdentifier[]; // record of execution through policy tree
 	// whether short-circuiting has already occurred in this evaluation
 	shortCircuitOccurred: boolean; 
