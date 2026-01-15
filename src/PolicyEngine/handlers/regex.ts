@@ -2,10 +2,11 @@ import type { EvaluationState, Policy } from "../types.js";
 import { assertRegexCheck } from "../validator.js";
 
 export function evalRegex({
-  evalState,
-	policyNode,
-	doNextCheck, 
-  doShortCircuit, 
+  evalState, // evaluation state (info accumulator)
+	policyNode, // the node this was called for
+	evalNode, // function to do checks on a child node
+  // content info and evaluation specifications
+  doEarlyExit, // whether we do short-circuiting in all_of nodes or accumulate ALL violations
   text,
   imageUrl,
   history,
@@ -14,8 +15,8 @@ export function evalRegex({
   evalState: EvaluationState;
 	policyNode: Policy;
 	nodeAddress: string;
-	doNextCheck: (node: Policy, nodeAddress: string) => void;
-  doShortCircuit: boolean | null; 
+	evalNode: (node: Policy, parentAddress: string) => void;
+  doEarlyExit: boolean | null; 
   text: string;
   imageUrl?: string | null;
   history?: string[] | null;
