@@ -13,8 +13,9 @@ import {
 	NodeEvaluator,
 	EvaluationState,
 } from "./types.js";
-import { nodeEvaluators, getDispatchKey } from "./handlers/index.js"; // hack-fix
-import { assertPolicy } from "./validator.js"
+import { nodeEvaluators, getDispatchKey } from "./handlers/index.js"; 
+import { assertPolicy } from "./validator.js";
+import { normalize } from "./normalizer.js";
 
 export class PolicyEngine {
   private readonly apiKey: string | undefined; // may be provided at evaluation time
@@ -29,8 +30,8 @@ export class PolicyEngine {
     apiKey?: string | undefined;
   }) {
 		assertPolicy(opts.policyJson)
+		normalize(opts.policyJson)
 		this.policyRoot = opts.policyJson as Policy
-
     this.model = opts.modelName;
     this.baseUrl = opts.baseUrl.replace(/\/+$/, "");
     this.apiKey = (opts.apiKey);
@@ -42,14 +43,14 @@ export class PolicyEngine {
  */
 evaluateHelper(
   {
-		doShortCircuit,
+		doEarlyExit,
 		text,
 		imageUrl,
     history,
     apiKey,
   }: {
 		// content info and evaluation specifications
-		doShortCircuit: boolean | null, // whether we do short-circuiting in logic nodes
+		doEarlyExit: boolean | null, // whether we do short-circuiting in all_of
     text: string;
 		imageUrl?: string | null;
     history?: string[] | null;
@@ -95,7 +96,7 @@ evaluateHelper(
 				policyNode: node,
 				nodeAddress: nodeAddress, 
 				evalNode: evalNode,
-				doShortCircuit: doShortCircuit, 
+				doEarlyExit: doEarlyExit, 
 				text: text, 
 				imageUrl: imageUrl, 
 				history: history, 
@@ -112,19 +113,19 @@ async evaluate(
 		imageUrl,
     history,
     apiKey,
-		shortCircuit
+		doEarlyExit,
   }: {
     text: string;
 		imageUrl?: string | null;
     history?: string[] | null;
     apiKey?: string;
-		shortCircuit?: boolean
+		doEarlyExit?: boolean
   }
 ): Promise<EvaluationResult> {
 		// undefined interpreted as null
 		imageUrl ??= null;
 		history ??= null; 
-		shortCircuit ??= false
+		doEarlyExit ??= false
 
 		if (imageUrl !== null) {
 			console.warn("Image input detected but not yet supported; ignoring image.");
@@ -143,7 +144,7 @@ async evaluate(
 
 
 		this.evaluateHelper({ 
-			doShortCircuit: shortCircuit, 
+			doEarlyExit: doEarlyExit, 
 			text: text, 
 			imageUrl:imageUrl, 
 			history: history, 
@@ -156,7 +157,7 @@ async evaluate(
 		violation: false,
 		modNote: "",
 		trace: [],
-		shortCircuit: false,
+		earlyExit: false,
 	};
 		
 		// temp return

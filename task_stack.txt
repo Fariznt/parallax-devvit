@@ -1,6 +1,13 @@
-mismatch between validator and nextcheck addressing + nextcheck as a concept does not account for combinators
-write the evaluation recursion function  (dont forget to complete type definition)
-get function annotations generated for the evaluateHelper function
+  any of doesnt maintain explanation; not is difficult to do explanation for asw
+  neither of their violations are yet implemented, and im not sure how to do it
+  i need to make some sort of sacrifice here. drop any_of/not, or explanations, etc.
+
+issue: trace will have deferrence for llms. should i have a list of deferredchecks and their result
+as part of the evaluation outcome?
+
+how does any of work with deferred? if deferred check passes, then we have pointless set of violations
+in the object
+
 do llm node definition
 test yaml_parser
 do rest of the node definitions
@@ -21,6 +28,7 @@ Future
 6. incorporate use of post history
 7. validate only one check per level (rn takes the cheapest one)
 8. hella documentation
+    more than one semantic node in any_of block is invalid
 
 notes for me:
 devvit settings set apiKey for setting apiKey

@@ -93,7 +93,8 @@ export type NodeIdentifier = { // generated at evaluation time lazily
 	// uniqueness is not enforced (naming recommended for adjacent duplicate node types ex. who regexes under an any_of)
 	address: string;
 	type: NodeType;
-  result: boolean; // whether the check passed at the independent level
+  // whether the check passed at the single-node level; deferred for downstream deferredChecks
+  result: "pass" | "fail" | "deferred"; 
 }
 
 // Policy violation representation used in output
@@ -110,9 +111,9 @@ export type EvaluationResult = {
   violation: boolean; // whether the content violates the policy; true if violations length > 0
   modNote: string; // 100 character of less, possibly incomplete summary-note of explanation
   trace: NodeIdentifier[]; // record of execution through policy tree
-	// Whether evaluation was short-circuited, which indicates incompleteness of explanation/violations, 
-	// in accordance with traversal recorded in trace
-	shortCircuit: boolean; 
+	// Whether evaluation was short-circuited in all_of, which indicates incompleteness of 
+  // explanation/violations. Should be true if only caring about violation vs no violation
+	earlyExit: boolean; 
 }
 
 // ===Definitions for policy evaluation process===
@@ -122,6 +123,7 @@ export type EvaluationResult = {
 export type NodeEvaluator = ({
   evalState, // evaluation state (info accumulator)
 	policyNode, // the node this was called for
+  nodeAddress,
 	evalNode, // function to do checks on a child node
   // content info and evaluation specifications
   doEarlyExit, // whether we do short-circuiting in all_of nodes or accumulate ALL violations
@@ -148,7 +150,7 @@ export type EvaluationState = {
 	trace: NodeIdentifier[]; // record of execution through policy tree
 	// whether short-circuiting has already occurred in this evaluation
 	earlyExit: boolean; 
-	// With short circuiting off, LLM calls can be batched outside of this helper. 
+	// With earlyExit circuiting off, LLM calls can be batched outside of this helper. 
 	// This is a list of expensive checks to do deferred for batching in the parent function.
 	deferredChecks: DeferredCheck[]; 
 }
