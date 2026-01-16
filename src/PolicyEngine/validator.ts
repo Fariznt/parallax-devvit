@@ -112,7 +112,12 @@ export function assertRegexCheck(node: Record<string, unknown>, path: string): a
 	assertArray(v.patterns, `${path}.regex_check.patterns`);
 	v.patterns.forEach((p, i) => assertString(p, `${path}.regex_check.patterns[${i}]`));
 
-	if ("flags" in v && v.flags !== undefined) assertString(v.flags, `${path}.regex_check.flags`);
+	if ("flags" in v && v.flags !== undefined) {
+		assertString(v.flags, `${path}.regex_check.flags`);
+		if (v.flags.includes('y')) {
+			err(`${path}.regex_check.flags`, `'y' is an invalid flag`);
+		}
+	}
 }
 
 export function assertSafetyCheck(node: Record<string, unknown>, path: string): asserts node is SafetyCheckNode {
@@ -193,7 +198,7 @@ export function assertNot(node: Record<string, unknown>, path: string): asserts 
 
 /**
  * Type validation for Policy objects. Also serves as syntax validation of user-inputted policy
- * under the DSL defined for policy-making. Errors if x is not a Policy
+ * under the DSL defined for policy-making. Errors if x is not a Policy.
  * @param x (Potential) policy object
  * @returns True if x is correctly shaped for a Policy object
  */
