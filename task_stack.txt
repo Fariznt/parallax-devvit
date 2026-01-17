@@ -1,9 +1,5 @@
-test not w/ regex (feature test)
-implement not for any_of/all_of
-test not w/ any_of, all_of 
-
-do llm evaluation definition
-// test llm evaluation
+do llm evaluation definition (basic)
+maybe build in openai + gemini support? or something
 
 go over changes to main
 for language and safety nodes need to define schema for apikey input
