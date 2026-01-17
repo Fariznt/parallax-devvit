@@ -12,33 +12,37 @@ import {
 	DeferredCheck,
 	NodeEvaluator,
 	EvaluationState,
+	ModelRegistry,
+	ModelConfig,
+	ApiKeys
 } from "./types.js";
 import { nodeEvaluators, getDispatchKey } from "./handlers/index.js"; 
 import { assertPolicy } from "./validator.js";
 import { normalize } from "./normalizer.js";
 
 export class PolicyEngine {
-  private readonly apiKey: string | undefined; // may be provided at evaluation time
-  private readonly baseUrl: string;
-  private readonly model: string;
+  // private readonly baseUrl: string | undefined;
+  // private readonly model: string | undefined;
   private readonly policyRoot: Policy;
+	private readonly models: ModelRegistry; 
 
   constructor(opts: {
     policyJson: Record<string, unknown>;
-    modelName: string;
-    baseUrl: string; // works with any OpenAI-compatible endpoint ex. OpenRouter
-    apiKey?: string | undefined;
+		models?: ModelRegistry;
   }) {
 		assertPolicy(opts.policyJson)
 		normalize(opts.policyJson)
 		this.policyRoot = opts.policyJson as Policy
-    this.model = opts.modelName;
-    this.baseUrl = opts.baseUrl.replace(/\/+$/, "");
-    this.apiKey = (opts.apiKey);
+
+		if (opts.models) {
+			this.models = opts.models
+		}
   }
 
+
+
 /**
- * 
+ * TODO
  * @param param0 
  */
 evaluateHelper(
@@ -47,14 +51,14 @@ evaluateHelper(
 		text,
 		imageUrl,
     history,
-    apiKey,
+    apiKeys,
   }: {
 		// content info and evaluation specifications
 		doEarlyExit: boolean | null, // whether we do short-circuiting in all_of
     text: string;
 		imageUrl?: string | null;
     history?: string[] | null;
-    apiKey?: string;
+    apiKeys: ApiKeys;
   }
 ): void {
 	// Init empty evaluation state---this will be mutated and carry the evaluation-related info
@@ -65,6 +69,8 @@ evaluateHelper(
 		earlyExit: false,
 		deferredChecks: []
 	}
+
+	const models: ModelRegistry = this.models
 
 	/**
 	 * Function called by a node evaluator on the node it was called on when doing a downstream
@@ -99,8 +105,9 @@ evaluateHelper(
 				doEarlyExit: doEarlyExit, 
 				text: text, 
 				imageUrl: imageUrl, 
-				history: history, 
-				apiKey: apiKey 
+				history: history,
+				models: models,
+				apiKeys: apiKeys
 			});	
 	}
 
@@ -112,13 +119,13 @@ async evaluate(
     text,
 		imageUrl,
     history,
-    apiKey,
+    apiKeys,
 		doEarlyExit,
   }: {
     text: string;
 		imageUrl?: string | null;
-    history?: string[] | null;
-    apiKey?: string;
+    history?: string[]| null;
+    apiKeys: ApiKeys;
 		doEarlyExit?: boolean
   }
 ): Promise<EvaluationResult> {
@@ -131,24 +138,13 @@ async evaluate(
 			console.warn("Image input detected but not yet supported; ignoring image.");
 		}
 
-		let key: string;
-    if (apiKey !== undefined) {
-        key = apiKey;
-    } else if (this.apiKey !== undefined) {
-        key = this.apiKey;
-    } else {
-        throw new Error("API key must be provided either at construction or evaluation time.");
-    }
-
-
-
 
 		this.evaluateHelper({ 
 			doEarlyExit: doEarlyExit, 
 			text: text, 
 			imageUrl:imageUrl, 
 			history: history, 
-			apiKey: key 
+			apiKeys: apiKeys
 		});
 
 
