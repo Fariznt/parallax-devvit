@@ -1,4 +1,4 @@
-import type { EvaluationState, Policy } from "../types.js";
+import type { EvaluationState, Policy, ApiKeys, ModelRegistry } from "../types.js";
 import { assertSemanticCheck } from "../validator.js";
 
 export function evalSemantic({
@@ -10,7 +10,8 @@ export function evalSemantic({
   text,
   imageUrl,
   history,
-  apiKey,
+  models,
+  apiKeys,
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
@@ -20,7 +21,8 @@ export function evalSemantic({
   text: string;
   imageUrl?: string | null;
   history?: string[] | null;
-  apiKey?: string;
+  models: ModelRegistry;
+  apiKeys?: ApiKeys;
 }): void {
 	console.warn('Semantic nodes are not implemented')
 }
