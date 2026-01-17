@@ -1,7 +1,7 @@
 import { Policy, SafetyCategory, SafetyRule } from "./types.js";
 
 export const PREDICATE_NAMES = [
-	"regex_check",
+	"match_check",
 	"safety_check",
 	"semantic_check",
 	"language_check",
@@ -33,7 +33,10 @@ export type AnyOfNode = Policy & { any_of: Policy[] };
 export type AllOfNode = Policy & { all_of: Policy[] };
 export type NotNode   = Policy & { not: Policy[] | Policy };
 
-export type RegexCheckNode = { regex_check: { patterns: string[]; flags?: string } };
+export type MatchCheckNode = { 
+	match_check: { patterns: string[]; flags?: string; blacklist?: boolean } 
+};
+
 export type SafetyCheckNode = {
 	safety_check: {
 		scope?: "text" | "image" | "both";
@@ -61,6 +64,9 @@ function assertNumber(x: unknown, path: string): asserts x is number {
 	if (typeof x !== "number") err(path, "expected number");
 }
 
+function assertBoolean(x: unknown, path: string): asserts x is boolean {
+	if (typeof x !== "boolean") err(path, "expected boolean");
+}
 function assertArray(x: unknown, path: string): asserts x is unknown[] {
 	if (!Array.isArray(x)) err(path, "expected array");
 }
@@ -105,18 +111,22 @@ function assertSafetyRule(x: unknown, path: string): asserts x is SafetyRule {
 	if (hasViol) assertRange(x.violation_range, `${path}.violation_range`);
 }
 
-export function assertRegexCheck(node: Record<string, unknown>, path: string): asserts node is RegexCheckNode {
-	const v = node.regex_check;
-	assertObject(v, `${path}.regex_check`);
+export function assertMatchCheck(node: Record<string, unknown>, path: string): asserts node is MatchCheckNode {
+	const v = node.match_check;
+	assertObject(v, `${path}.match_check`);
 
-	assertArray(v.patterns, `${path}.regex_check.patterns`);
-	v.patterns.forEach((p, i) => assertString(p, `${path}.regex_check.patterns[${i}]`));
+	assertArray(v.patterns, `${path}.match_check.patterns`);
+	v.patterns.forEach((p, i) => assertString(p, `${path}.match_check.patterns[${i}]`));
 
 	if ("flags" in v && v.flags !== undefined) {
-		assertString(v.flags, `${path}.regex_check.flags`);
+		assertString(v.flags, `${path}.match_check.flags`);
 		if (v.flags.includes('y')) {
-			err(`${path}.regex_check.flags`, `'y' is an invalid flag`);
+			err(`${path}.match_check.flags`, `'y' is an invalid flag`);
 		}
+	}
+
+	if ("blacklist" in v && v.blacklist !== undefined) {
+		assertBoolean(v.blacklist, `${path}.match_check.blacklist`);
 	}
 }
 
@@ -226,7 +236,7 @@ export function assertPolicy(x: unknown, path = "policy", disallowSemantic = fal
 	if (presentChecks.length !== 1) err(path, `expected exactly 1 predicate (${PREDICATE_NAMES.join(", ")})`);
 
 	const k = presentChecks[0]!;
-	if (k === "regex_check") return assertRegexCheck(x, path);
+	if (k === "match_check") return assertMatchCheck(x, path);
 	if (k === "safety_check") return assertSafetyCheck(x, path);
 	if (k === "language_check") return assertLanguageCheck(x, path);
 	if (k === "semantic_check") return assertSemanticCheck(x, path);

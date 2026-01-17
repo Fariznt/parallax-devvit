@@ -16,10 +16,10 @@ export function recursiveNorm(policy: Policy, inheritedSeverity?: number): void 
 	if (policy.severity == null) policy.severity = effective; 
 
     // whitelist is false by default if not included
-    if ("regex_check" in policy) {
-			const rc = policy.regex_check;
-			if (rc.whitelist === undefined) {
-				rc.whitelist = false;
+    if ("match_check" in policy) {
+			const mc = policy.match_check;
+			if (mc.blacklist === undefined) {
+				mc.blacklist = false;
 			}
     }
 

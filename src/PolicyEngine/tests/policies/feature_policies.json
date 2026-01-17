@@ -1,39 +1,39 @@
 {
   "all_of_p": {
     "all_of": [
-      { "regex_check": { "patterns": ["a"] } },
-      { "regex_check": { "patterns": ["b"] } }
+      { "match_check": { "patterns": ["a"] } },
+      { "match_check": { "patterns": ["b"] } }
     ]
   },
   "any_of_p": {
     "any_of": [
-      { "regex_check": { "patterns": ["a"] } },
-      { "regex_check": { "patterns": ["b"] } }
+      { "match_check": { "patterns": ["a"] } },
+      { "match_check": { "patterns": ["b"] } }
     ]
   },
   "regex_whitelist": {
-    "regex_check": {
+    "match_check": {
       "patterns": ["a", "b"],
-      "whitelist": true
+      "blacklist": false
     }
   },
   "regex_blacklist": {
-    "regex_check": {
+    "match_check": {
       "patterns": ["a", "b"],
-      "whitelist": false
+      "blacklist": true
     }
   },
   "regex_whitelist_g": {
-    "regex_check": {
+    "match_check": {
       "patterns": ["a", "b"],
-      "whitelist": true,
+      "blacklist": false,
       "flags": "g"
     }
   },
   "regex_blacklist_g": {
-    "regex_check": {
+    "match_check": {
       "patterns": ["a", "b"],
-      "whitelist": false,
+      "blacklist": true,
       "flags": "g"
     }
   }
