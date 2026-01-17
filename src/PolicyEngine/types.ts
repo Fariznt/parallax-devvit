@@ -52,9 +52,9 @@ export type SafetySpecification =
 // NodeSpecification: Defines types of checks and their fields
 export type NodeSpecification = {
 	// core functionality
-  regex_check: { 
+  match_check: { 
 		patterns: string[];
-    whitelist?: boolean; // considered false by default i.e. pattern is blacklist
+    blacklist?: boolean; // considered false by default i.e. pattern is whitelist
 		flags?: string;
 	};
 	safety_check: {
@@ -62,7 +62,7 @@ export type NodeSpecification = {
 	} & SafetySpecification;
   semantic_check: { semantic: string };
 	language_check: { allowed: string[] }; // to be implemented using language.googleapis.com
-  // NEW CHECKS ADDED HERE (subsets of regex/safety, length, capitalization percentage)
+  // NEW CHECKS ADDED HERE (subsets of match/safety, length, capitalization percentage)
 };
 
 // A type of check of the content
@@ -99,7 +99,7 @@ export type DeferredCheck = {
 }
 
 export type NodeType = 
-  | "regex_check" | "safety_check" | "semantic_check" 
+  | "match_check" | "safety_check" | "semantic_check" 
   | "language_check" | "all_of" | "any_of" | "not" // NEW CHECKS ADDED HERE
 
 export type NodeResult = 
@@ -110,7 +110,6 @@ export type NodeResult =
 export type NodeIdentifier = { // generated at evaluation time lazily
 	display_name?: string;
 	// address in policy tree as root...grandparent.parent.node where each is the name or type of the node
-	// uniqueness is not enforced (naming recommended for adjacent duplicate node types ex. who regexes under an any_of)
 	address: string;
 	type: NodeType;
   // whether the check passed at the single-node level; deferred for downstream deferredChecks
@@ -138,12 +137,17 @@ export type EvaluationResult = {
 
 // ===Definitions for policy evaluation process===
 
+export type EvalRouter = (
+    node: Policy, negate: boolean, parentAddress: string
+) => void;
+
 // A function that evaluates some type of individual PolicyNode node (any predicate or combinator)
 // during recursive policy evaluation
 export type NodeEvaluator = ({
   evalState, // evaluation state (info accumulator)
 	policyNode, // the node this was called for
-  nodeAddress,
+  negate, // whether evaluation should be negated in accordance w/ upstream not node
+  nodeAddress, // name_or_type[index if applicable]/parentAddres
 	evalNode, // function to do checks on a child node
   // content info and evaluation specifications
   doEarlyExit, // whether we do short-circuiting in all_of nodes or accumulate ALL violations
@@ -155,8 +159,9 @@ export type NodeEvaluator = ({
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
+  negate: boolean;
 	nodeAddress: string;
-	evalNode: (node: Policy, parentAddress: string) => void;
+	evalNode: EvalRouter;
   doEarlyExit: boolean | null; 
   text: string;
   imageUrl?: string | null;
