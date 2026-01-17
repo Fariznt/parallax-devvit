@@ -75,13 +75,15 @@ export function evalMatch({
   text: string;
 }): void {
   assertMatchCheck(policyNode, nodeAddress)
+  console.log("running match with negate = " + negate)
 
   const id: NodeIdentifier = getNodeId(policyNode.name, nodeAddress, null)
   evalState.trace.push(id) 
 
-  // future code for handling NOT smth like 
-  // if (negate) { const whitelist = !policyNode.match_check.whitelist } else { below } 
-  const whitelist = !policyNode.match_check.blacklist
+  let whitelist = !policyNode.match_check.blacklist
+  if (negate) { 
+    whitelist = !whitelist
+  }
 
   // extract regex args
   const patterns = policyNode.match_check.patterns; // list

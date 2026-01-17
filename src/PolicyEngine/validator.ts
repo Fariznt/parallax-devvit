@@ -31,7 +31,7 @@ export const SAFETY_CATEGORIES = new Set<SafetyCategory>([
 
 export type AnyOfNode = Policy & { any_of: Policy[] };
 export type AllOfNode = Policy & { all_of: Policy[] };
-export type NotNode   = Policy & { not: Policy[] | Policy };
+export type NotNode   = Policy & { not: Policy };
 
 export type MatchCheckNode = { 
 	match_check: { patterns: string[]; flags?: string; blacklist?: boolean } 
@@ -192,15 +192,6 @@ export function assertAllOf(node: Record<string, unknown>, path: string): assert
 
 export function assertNot(node: Record<string, unknown>, path: string): asserts node is NotNode {
 	const v = node.not;
-
-	if (Array.isArray(v)) {
-		if (v.length !== 1) err(`${path}.not`, "expected single-element array");
-
-		const tmp = `${path}.not[0]`;
-		assertObject(v[0], tmp);
-		return assertPolicy(v[0], `${path}/${nodeLabel(v[0])}[0]`);
-	}
-
 	const tmp = `${path}.not`;
 	assertObject(v, tmp);
 	return assertPolicy(v, `${path}/${nodeLabel(v)}`);
