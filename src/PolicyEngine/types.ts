@@ -1,3 +1,18 @@
+// === LLM arguments to PolicyEngine ===
+
+export type ModelConfig = {
+  modelName: string;
+  baseUrl: string;
+};
+
+export type ModelRegistry = {
+  default: string | null;
+  presets: Record<string, ModelConfig>; // key used in policy definition -> config
+};
+
+export type ApiKeys = Record<string, string> // same key -> api key strings
+
+// === Definitions for Policy definition ===
 
 export type SafetyCategory =
   | "sexual"
@@ -39,6 +54,7 @@ export type NodeSpecification = {
 	// core functionality
   regex_check: { 
 		patterns: string[];
+    whitelist?: boolean; // considered false by default i.e. pattern is blacklist
 		flags?: string;
 	};
 	safety_check: {
@@ -46,7 +62,7 @@ export type NodeSpecification = {
 	} & SafetySpecification;
   semantic_check: { semantic: string };
 	language_check: { allowed: string[] }; // to be implemented using language.googleapis.com
-  // NEW CHECKS ADDED HERE
+  // NEW CHECKS ADDED HERE (subsets of regex/safety, length, capitalization percentage)
 };
 
 // A type of check of the content
@@ -70,7 +86,7 @@ export type Policy = {
 	severity?: number; // optional severity score for violating this check
 } & (Predicate | Combinator);
 
-// === Definitions for PolicyEngine output ===
+// === Definitions for PolicyEngine evaluation output ===
 
 // Information corresponding to some predicate, returned by evaluateHelper so that
 // expensive calls can be done with batching of all checks that wanted to use the 
@@ -79,11 +95,15 @@ export type DeferredCheck = {
 	type: 'semantic_check';
 	rule: string;
 	negate: boolean // flipped by a NOT node
+  node_id: NodeIdentifier 
 }
 
 export type NodeType = 
   | "regex_check" | "safety_check" | "semantic_check" 
   | "language_check" | "all_of" | "any_of" | "not" // NEW CHECKS ADDED HERE
+
+export type NodeResult = 
+"pass" | "fail" | "deferred" | null // null means not yet evaluated 
 
 // An identifier of nodes in the policy-tree generated lazily at evaluation time
 // Exists for humans to understand how policy evaluation occurred and details
@@ -94,7 +114,7 @@ export type NodeIdentifier = { // generated at evaluation time lazily
 	address: string;
 	type: NodeType;
   // whether the check passed at the single-node level; deferred for downstream deferredChecks
-  result: "pass" | "fail" | "deferred"; 
+  result: NodeResult; 
 }
 
 // Policy violation representation used in output
@@ -140,7 +160,7 @@ export type NodeEvaluator = ({
   text: string;
   imageUrl?: string | null;
   history?: string[] | null;
-  apiKey?: string;
+  apiKey?: string| null;
 }) => void;
 
 export type EvaluationState = {
