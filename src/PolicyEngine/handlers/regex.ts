@@ -66,7 +66,6 @@ export function evalRegex({
 	evalNode: (node: Policy, parentAddress: string) => void;
   text: string;
 }): void {
-	console.warn('Regex nodes are not implemented')
   assertRegexCheck(policyNode, nodeAddress)
 
   const id: NodeIdentifier = getNodeId(policyNode.name, nodeAddress, null)
@@ -105,9 +104,15 @@ export function evalRegex({
       evalNode(policyNode.next_check, nodeAddress)
     } else {
       if (useGlobalSeq && whitelist) {
-        explanation = `The following patterns required failed to match:
+        explanation = `The following patterns required failed to match in sequence:
         ${unmatchedPatterns.map(p => `- ${p}`).join("\n")}`
       } else if (useGlobalSeq && !whitelist) {
+        explanation = `The following disallowed patterns matched in sequence:
+        ${matchedPatterns.map(p => `- ${p}`).join("\n")}`
+      } else if (!useGlobalSeq && whitelist) {
+        explanation = `The following patterns required failed to match:
+        ${unmatchedPatterns.map(p => `- ${p}`).join("\n")}`
+      } else if (!useGlobalSeq && !whitelist) {
         explanation = `The following disallowed patterns matched:
         ${matchedPatterns.map(p => `- ${p}`).join("\n")}`
       }

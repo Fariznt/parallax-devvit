@@ -77,12 +77,13 @@ export function evalAnyOf({
   let onePassed = false;
 	const origState: EvaluationState = structuredClone(evalState)
 	for (const p of policyNode.any_of) {
+    const preBranchViol = structuredClone(evalState.violations)
     const preBranchDef = structuredClone(evalState.deferredChecks)
     evalNode(p, nodeAddress)
     const newDeferred = (preBranchDef.length != evalState.deferredChecks.length)
+    const newViolation = (evalState.violations.length != preBranchViol.length)
 
-		if ((evalState.violations.length == origState.violations.length)
-        && !newDeferred) { // no current or possible future violation found
+		if (!newViolation && !newDeferred) { // no current or possible future violation found
 			onePassed = true // any_of pass condition reached
       // since any_of passed, any downstream deferred checks are unnecessary. revert.
       evalState.deferredChecks = origState.deferredChecks

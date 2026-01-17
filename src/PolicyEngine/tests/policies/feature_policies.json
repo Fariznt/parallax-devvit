@@ -5,6 +5,36 @@
       { "regex_check": { "patterns": ["b"] } }
     ]
   },
-  "any_of_p": {},
-  "regex_p": {}
+  "any_of_p": {
+    "any_of": [
+      { "regex_check": { "patterns": ["a"] } },
+      { "regex_check": { "patterns": ["b"] } }
+    ]
+  },
+  "regex_whitelist": {
+    "regex_check": {
+      "patterns": ["a", "b"],
+      "whitelist": true
+    }
+  },
+  "regex_blacklist": {
+    "regex_check": {
+      "patterns": ["a", "b"],
+      "whitelist": false
+    }
+  },
+  "regex_whitelist_g": {
+    "regex_check": {
+      "patterns": ["a", "b"],
+      "whitelist": true,
+      "flags": "g"
+    }
+  },
+  "regex_blacklist_g": {
+    "regex_check": {
+      "patterns": ["a", "b"],
+      "whitelist": false,
+      "flags": "g"
+    }
+  }
 }
