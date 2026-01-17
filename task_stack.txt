@@ -1,8 +1,4 @@
-cont testing feature tests
-
-have chatgpt go over my syntax for regex_check
-run example policies to verify work so far: regex features + combinators. formalized test file?
-add to llm type definition and validation model presets type (althugh prob not required for coding it and running itself)
+rename regex check to match check.
 do llm evaluation definition
 go over changes to main
 registry validation

@@ -1,5 +1,5 @@
 import type { EvaluationState, Policy, NodeIdentifier, Violation, NodeResult } from "../types.js";
-import { assertRegexCheck } from "../validator.js";
+import { assertMatchCheck } from "../validator.js";
 
 function evalPatterns(patterns: string[], flags: string, text: string): {
   matchMask: boolean[];
@@ -46,13 +46,13 @@ function getNodeId(
   const id: NodeIdentifier = {
     display_name: name,
     address: nodeAddress,
-    type: "regex_check",
+    type: "match_check",
     result: result
   }
   return id
 }
 
-export function evalRegex({
+export function evalMatch({
   evalState, // evaluation state (info accumulator)
 	policyNode, // the node this was called for
   nodeAddress,
@@ -66,18 +66,18 @@ export function evalRegex({
 	evalNode: (node: Policy, parentAddress: string) => void;
   text: string;
 }): void {
-  assertRegexCheck(policyNode, nodeAddress)
+  assertMatchCheck(policyNode, nodeAddress)
 
   const id: NodeIdentifier = getNodeId(policyNode.name, nodeAddress, null)
   evalState.trace.push(id) 
 
-  // future code for handling NOT
-  // if (negate) { const whitelist = !policyNode.regex_check.whitelist } else { below } 
-  const whitelist = policyNode.regex_check.whitelist
+  // future code for handling NOT smth like 
+  // if (negate) { const whitelist = !policyNode.match_check.whitelist } else { below } 
+  const whitelist = !policyNode.match_check.blacklist
 
   // extract regex args
-  const patterns = policyNode.regex_check.patterns; // list
-  const flags = policyNode.regex_check.flags ?? "" // string
+  const patterns = policyNode.match_check.patterns; // list
+  const flags = policyNode.match_check.flags ?? "" // string
 
   const { matchMask, matchedPatterns, unmatchedPatterns } = evalPatterns(patterns, flags, text);
 

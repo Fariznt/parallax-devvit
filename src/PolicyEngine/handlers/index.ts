@@ -1,7 +1,7 @@
 
 import { NodeEvaluator, Policy } from "../types.js";
 import { evalAnyOf, evalAllOf, evalNot } from "./combinators.js";
-import { evalRegex } from "./regex.js";
+import { evalMatch } from "./match.js";
 import { evalSemantic } from "./semantic.js";
 import { evalLanguage } from "./language.js";
 import { evalSafety } from "./safety.js";
@@ -10,7 +10,7 @@ export {
   evalAnyOf,
   evalAllOf,
   evalNot,
-  evalRegex,
+  evalMatch,
   evalSemantic,
   evalLanguage,
   evalSafety,
@@ -20,7 +20,7 @@ export const nodeEvaluators: Record<string, NodeEvaluator> = {
   any_of: evalAnyOf,
   all_of: evalAllOf,
   not: evalNot,
-  regex_check: evalRegex,
+  match_check: evalMatch,
   semantic_check: evalSemantic,
   language_check: evalLanguage,
   safety_check: evalSafety,
