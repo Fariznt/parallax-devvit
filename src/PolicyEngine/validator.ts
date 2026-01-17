@@ -202,7 +202,7 @@ export function assertNot(node: Record<string, unknown>, path: string): asserts 
  * @param x (Potential) policy object
  * @returns True if x is correctly shaped for a Policy object
  */
-export function assertPolicy(x: unknown, path = "policy"): asserts x is Policy {
+export function assertPolicy(x: unknown, path = "policy", disallowSemantic = false): asserts x is Policy {
 	assertObject(x, path);
 
 	// optional metadata

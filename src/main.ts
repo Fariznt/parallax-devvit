@@ -2,6 +2,8 @@ import { Devvit, ModNote } from "@devvit/public-api";
 import type { TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
 import { PolicyEngine }  from "./PolicyEngine/engine.js";
 import type { EvaluationResult } from "./PolicyEngine/types.js";
+import { parseYamlSubset } from "./PolicyEngine/yaml_parser.js"; // temp
+import { assertPolicy } from "./PolicyEngine/validator.js";
 
 Devvit.addSettings([
   {
@@ -30,6 +32,12 @@ Devvit.addSettings([
     scope: 'installation', 
     defaultValue: 'gpt-3.5-turbo',
   },
+  {
+    name: 'policyYaml',
+    label: 'Policy File (YAML)',
+    type: 'paragraph',
+    scope: 'installation'
+  }
 ]);
 
 Devvit.configure({
@@ -37,6 +45,8 @@ Devvit.configure({
   redis: true,
   http: true,
 });
+
+
 
 type JsonObject = Record<string, unknown>;
 
@@ -128,22 +138,31 @@ Devvit.addTrigger({
   // Fires for new comments, including replies.
   event: "CommentCreate", // TODO: include posts
   onEvent: async (event: TriggerEventType["CommentCreate"], context) => {
-    console.log('CommentCreate event triggered');
 
-    const comment = event.comment;
-    const text = comment?.body ?? "";
-    if (!comment || !text) return;
+    const raw = await context.settings.get("policyYaml");
+    if (typeof raw !== "string" || raw.length === 0) {
+      throw new Error('Setting "PolicyYaml" must be a non-empty string');
+    }
+    console.log(parseYamlSubset(raw))
+    assertPolicy(raw)
 
-    const commentThread: string[] = await getThread(context, comment);
-    console.log('commentThread:', commentThread)
 
-    console.log("Evaluation text:" + text);
+    // console.log('CommentCreate event triggered');
 
-    const apiKey = await getKey(context);
-    const engine = await getEngine(context);
-    const result = await engine.evaluate({ text: text, history: commentThread, apiKey: apiKey, shortCircuit: false });
-    console.log('Evaluation result:', result);
-    resultApply(result, comment.id, context);
+    // const comment = event.comment;
+    // const text = comment?.body ?? "";
+    // if (!comment || !text) return;
+
+    // const commentThread: string[] = await getThread(context, comment);
+    // console.log('commentThread:', commentThread)
+
+    // console.log("Evaluation text:" + text);
+
+    // const apiKey = await getKey(context);
+    // const engine = await getEngine(context);
+    // const result = await engine.evaluate({ text: text, history: commentThread, apiKey: apiKey, doEarlyExit: false });
+    // console.log('Evaluation result:', result);
+    // resultApply(result, comment.id, context);
   },
 });
 
