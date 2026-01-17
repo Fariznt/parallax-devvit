@@ -21,7 +21,7 @@ export function evalSemantic({
   text: string;
   imageUrl?: string | null;
   history?: string[] | null;
-  models: ModelRegistry;
+  models?: ModelRegistry;
   apiKeys?: ApiKeys;
 }): void {
 	console.warn('Semantic nodes are not implemented')

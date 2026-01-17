@@ -1,0 +1,10 @@
+{
+  "all_of_p": {
+    "all_of": [
+      { "regex_check": { "patterns": ["a"] } },
+      { "regex_check": { "patterns": ["b"] } }
+    ]
+  },
+  "any_of_p": {},
+  "regex_p": {}
+}

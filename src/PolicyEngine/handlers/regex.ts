@@ -1,41 +1,18 @@
-import type { EvaluationState, Policy, NodeIdentifier, Violation } from "../types.js";
+import type { EvaluationState, Policy, NodeIdentifier, Violation, NodeResult } from "../types.js";
 import { assertRegexCheck } from "../validator.js";
 
-export function evalRegex({
-  evalState, // evaluation state (info accumulator)
-	policyNode, // the node this was called for
-  nodeAddress,
-	evalNode, // function to do checks on a child node
-  // content info and evaluation specifications
-  text,
-}: {
-  evalState: EvaluationState;
-	policyNode: Policy;
-	nodeAddress: string;
-	evalNode: (node: Policy, parentAddress: string) => void;
-  doEarlyExit: boolean | null; 
-  text: string;
-  imageUrl?: string | null;
-  history?: string[] | null;
-  apiKey?: string;
-}): void {
-	console.warn('Regex nodes are not implemented')
-  assertRegexCheck(policyNode, nodeAddress)
-  // future code for handling NOT
-  // if (negate) { const whitelist = !policyNode.regex_check.whitelist } else { below } 
-  const whitelist = policyNode.regex_check.whitelist
-
-  // extract regex args
-  const patterns = policyNode.regex_check.patterns; // list
-  const flags = policyNode.regex_check.flags ?? "" // string
-
+function evalPatterns(patterns: string[], flags: string, text: string): {
+  matchMask: boolean[];
+  matchedPatterns: string[];
+  unmatchedPatterns: string[];
+} {
   // set up accumulators for looped matching
-  const matchMask: boolean[] = []; 
+  const matchMask: boolean[] = [];
   let matchedPatterns: string[] = [];
   let unmatchedPatterns: string[] = [];
 
   // useGlobalSeq means we will check if patterns match in sequence
-  const useGlobalSeq = flags.includes('g'); 
+  const useGlobalSeq = flags.includes('g');
   let pos = 0;
 
   for (const pattern of patterns) {
@@ -54,11 +31,59 @@ export function evalRegex({
 
     matchMask.push(matched);
     if (matched) {
-      matchedPatterns.push(pattern)
+      matchedPatterns.push(pattern);
     } else {
-      unmatchedPatterns.push(pattern)
+      unmatchedPatterns.push(pattern);
     }
   }
+
+  return { matchMask, matchedPatterns, unmatchedPatterns };
+}
+
+function getNodeId(
+  name: string | undefined, nodeAddress: string, result: NodeResult
+): NodeIdentifier {
+  const id: NodeIdentifier = {
+    display_name: name,
+    address: nodeAddress,
+    type: "regex_check",
+    result: result
+  }
+  return id
+}
+
+export function evalRegex({
+  evalState, // evaluation state (info accumulator)
+	policyNode, // the node this was called for
+  nodeAddress,
+	evalNode, // function to do checks on a child node
+  // content info and evaluation specifications
+  text,
+}: {
+  evalState: EvaluationState;
+	policyNode: Policy;
+	nodeAddress: string;
+	evalNode: (node: Policy, parentAddress: string) => void;
+  text: string;
+}): void {
+	console.warn('Regex nodes are not implemented')
+  assertRegexCheck(policyNode, nodeAddress)
+
+  const id: NodeIdentifier = getNodeId(policyNode.name, nodeAddress, null)
+  evalState.trace.push(id) 
+
+  // future code for handling NOT
+  // if (negate) { const whitelist = !policyNode.regex_check.whitelist } else { below } 
+  const whitelist = policyNode.regex_check.whitelist
+
+  // extract regex args
+  const patterns = policyNode.regex_check.patterns; // list
+  const flags = policyNode.regex_check.flags ?? "" // string
+
+  const { matchMask, matchedPatterns, unmatchedPatterns } = evalPatterns(patterns, flags, text);
+
+  // useGlobalSeq means we will check if patterns match in sequence
+  const useGlobalSeq = flags.includes('g'); 
 
   // Get failure/nonfailure from match mask
   let matched: boolean;
@@ -68,32 +93,32 @@ export function evalRegex({
   if (whitelist) { fail = !matched } // didnt match is failure for whitelist
   else { fail = matched } // did match is failure for blacklist
 
-  // Generate variables for evalState change
-  let result: "pass" | "fail" | "deferred" = fail ? "fail" : "pass"
-  const id: NodeIdentifier = {
-    display_name: policyNode.name,
-    address: nodeAddress,
-    type: "regex_check",
-    result: result
-  }
+  // update evaluation result of this node in trace
+  const result = fail ? "fail" : "pass"
+  id.result = result
 
+   // Generate variables for evalState change
   let explanation: string = ""; // Answers "Why did the check fail?"
   if (fail) {
-    if (useGlobalSeq && whitelist) {
-      explanation = `The following patterns required failed to match:
-      ${unmatchedPatterns.map(p => `- ${p}`).join("\n")}`
-    } else if (useGlobalSeq && !whitelist) {
-      explanation = `The following disallowed patterns matched:
-      ${matchedPatterns.map(p => `- ${p}`).join("\n")}`
+    if (policyNode.next_check) {
+      // there is a next check. This failure only means that we escalate to another node
+      evalNode(policyNode.next_check, nodeAddress)
+    } else {
+      if (useGlobalSeq && whitelist) {
+        explanation = `The following patterns required failed to match:
+        ${unmatchedPatterns.map(p => `- ${p}`).join("\n")}`
+      } else if (useGlobalSeq && !whitelist) {
+        explanation = `The following disallowed patterns matched:
+        ${matchedPatterns.map(p => `- ${p}`).join("\n")}`
+      }
+
+      const newViolation: Violation = {
+        node: id,
+        explanation: explanation,
+        severity: policyNode.severity
+      }
+      evalState.violations.push(newViolation)
     }
 
-    const newViolation: Violation = {
-      node: id,
-      explanation: explanation,
-      severity: policyNode.severity
-    }
-    evalState.violations.push(newViolation)
   }
-
-  evalState.trace.push(id)
 }

@@ -17,15 +17,15 @@ export {
 };
 
 export const nodeEvaluators: Record<string, NodeEvaluator> = {
-    any_of: evalAnyOf,
-    all_of: evalAllOf,
-    not: evalNot,
-    regex: evalRegex,
-    semantic: evalSemantic,
-    language: evalLanguage,
-    safety: evalSafety,
-    // new checks added here
-  };
+  any_of: evalAnyOf,
+  all_of: evalAllOf,
+  not: evalNot,
+  regex_check: evalRegex,
+  semantic_check: evalSemantic,
+  language_check: evalLanguage,
+  safety_check: evalSafety,
+};
+
 
 const DISPATCH_KEYS = Object.keys(nodeEvaluators) as Array<keyof typeof nodeEvaluators>;
 

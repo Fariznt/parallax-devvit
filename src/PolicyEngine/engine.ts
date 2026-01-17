@@ -33,71 +33,82 @@ export class PolicyEngine {
 		assertPolicy(opts.policyJson)
 		normalize(opts.policyJson)
 		this.policyRoot = opts.policyJson as Policy
-
-		if (opts.models) {
-			this.models = opts.models
+		if (!opts.models) {
+			this.models = {
+				default: null,
+				presets: {}
+			} as ModelRegistry
+		} else {
+			this.models = opts.models as ModelRegistry
 		}
   }
 
+	addModel(key: string, config: ModelConfig): void {
+		this.models.presets[key] = config;
 
-
-/**
- * TODO
- * @param param0 
- */
-evaluateHelper(
-  {
-		doEarlyExit,
-		text,
-		imageUrl,
-    history,
-    apiKeys,
-  }: {
-		// content info and evaluation specifications
-		doEarlyExit: boolean | null, // whether we do short-circuiting in all_of
-    text: string;
-		imageUrl?: string | null;
-    history?: string[] | null;
-    apiKeys: ApiKeys;
-  }
-): void {
-	// Init empty evaluation state---this will be mutated and carry the evaluation-related info
-	// through the whole evaluation process,
-	const evalState: EvaluationState = {
-		violations: [],
-		trace: [], 
-		earlyExit: false,
-		deferredChecks: []
+		// set default if none exists yet
+		if (this.models.default === null) {
+			this.models.default = key;
+		}
 	}
 
-	const models: ModelRegistry = this.models
-
 	/**
-	 * Function called by a node evaluator on the node it was called on when doing a downstream
-	 * check is appropriate.
-	 * @param node The node with a .next_check that this function will execute
-	 * @param parentAddress The address of parentNode. If not given, node assumed to be root.
+	 * TODO
+	 * @param param0 
 	 */
-	function evalNode(node: Policy, parentAddress?: string): void {
-		if (!node) {
-			throw new Error("evalNode called on nonexistent node")
+	evaluateHelper(
+		{
+			doEarlyExit,
+			text,
+			imageUrl,
+			history,
+			apiKeys,
+		}: {
+			// content info and evaluation specifications
+			doEarlyExit: boolean | null, // whether we do short-circuiting in all_of
+			text: string;
+			imageUrl: string | null;
+			history: string[] | null;
+			apiKeys: ApiKeys;
 		}
-		
-		// construct address of childNode from parentAddress as `${parentAddress}/${nodeLabel(node)}`
-		// or policy/nodeLabel(node) for root
-		const nodeLabel = (policyNode: Policy): string => {
-			if (typeof policyNode.name === "string" && policyNode.name.length > 0) return policyNode.name;
-			const key = (Object.keys(nodeEvaluators) as string[]).find(k => k in policyNode);
-			if (key) return key;
-			return "policy";
-		};
-		const base = parentAddress ?? "policy";
-		const nodeAddress = `${base}/${nodeLabel(node)}`
-		
-		const key = getDispatchKey(node);
-		console.log('Determined dispatch key: ' + key)
-		console.log('Dispatching to function: ' + nodeEvaluators[key])
-		nodeEvaluators[key]({
+	): EvaluationState {
+		// Init empty evaluation state---this will be mutated and carry the evaluation-related info
+		// through the whole evaluation process,
+		const evalState: EvaluationState = {
+			violations: [],
+			trace: [], 
+			earlyExit: false,
+			deferredChecks: []
+		}
+
+		const models: ModelRegistry = this.models
+
+		/**
+		 * Function called by a node evaluator on the node it was called on when doing a downstream
+		 * check is appropriate.
+		 * @param node The node with a .next_check that this function will execute
+		 * @param parentAddress The address of parentNode. If not given, node assumed to be root.
+		 */
+		function evalNode(node: Policy, parentAddress?: string): void {
+			if (!node) {
+				throw new Error("evalNode called on nonexistent node")
+			}
+			
+			// construct address of childNode from parentAddress as `${parentAddress}/${nodeLabel(node)}`
+			// or policy/nodeLabel(node) for root
+			const nodeLabel = (policyNode: Policy): string => {
+				if (typeof policyNode.name === "string" && policyNode.name.length > 0) return policyNode.name;
+				const key = (Object.keys(nodeEvaluators) as string[]).find(k => k in policyNode);
+				if (key) return key;
+				return "policy";
+			};
+			const base = parentAddress ?? "policy";
+			const nodeAddress = `${base}/${nodeLabel(node)}`
+			
+			const key = getDispatchKey(node);
+			console.log('Determined dispatch key: ' + key)
+			console.log('Dispatching to function: ' + nodeEvaluators[key])
+			nodeEvaluators[key]({
 				evalState: evalState,
 				policyNode: node,
 				nodeAddress: nodeAddress, 
@@ -109,37 +120,39 @@ evaluateHelper(
 				models: models,
 				apiKeys: apiKeys
 			});	
+		}
+
+		evalNode(this.policyRoot)
+		return evalState
 	}
 
-	evalNode(this.policyRoot)
-}
-
-async evaluate(
-  {
-    text,
-		imageUrl,
-    history,
-    apiKeys,
-		doEarlyExit,
-  }: {
-    text: string;
-		imageUrl?: string | null;
-    history?: string[]| null;
-    apiKeys: ApiKeys;
-		doEarlyExit?: boolean
-  }
-): Promise<EvaluationResult> {
+	async evaluate(
+		{
+			text,
+			imageUrl,
+			history,
+			apiKeys,
+			doEarlyExit,
+		}: {
+			text: string;
+			imageUrl?: string | null;
+			history?: string[]| null;
+			apiKeys?: ApiKeys;
+			doEarlyExit?: boolean
+		}
+	): Promise<EvaluationResult> {
 		// undefined interpreted as null
 		imageUrl ??= null;
 		history ??= null; 
 		doEarlyExit ??= false
+		apiKeys ??= {}
 
 		if (imageUrl !== null) {
 			console.warn("Image input detected but not yet supported; ignoring image.");
 		}
 
 
-		this.evaluateHelper({ 
+		const evalState: EvaluationState = this.evaluateHelper({ 
 			doEarlyExit: doEarlyExit, 
 			text: text, 
 			imageUrl:imageUrl, 
@@ -148,16 +161,16 @@ async evaluate(
 		});
 
 
-	const PLACEHOLDER_EVALUATION_RESULT: EvaluationResult = {
-		violations: [],
-		violation: false,
-		modNote: "",
-		trace: [],
-		earlyExit: false,
-	};
-		
+		const PLACEHOLDER_EVALUATION_RESULT: EvaluationResult = {
+			violations: evalState.violations,
+			violation: evalState.violations.length > 0,
+			modNote: "", // todo
+			trace: evalState.trace,
+			earlyExit: evalState.earlyExit,
+		};
+			
 		// temp return
 		return PLACEHOLDER_EVALUATION_RESULT
-  }
+	}
 
 }
