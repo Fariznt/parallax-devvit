@@ -1,12 +1,18 @@
 import type { 
-  EvaluationState, 
   Policy, 
   NodeIdentifier, 
   Violation, 
   NodeResult,
-   EvalRouter, 
-   EvaluationResult,
-   DeferredCheck} from "../types.js";
+  EvaluationResult,
+  DeferredCheck 
+} from "../types.js";
+import type {
+  EvaluationState, 
+  EvalRouter,
+} from "./types.js";
+import {
+  addToTrace,
+} from "./utils.js"
 import { assertAnyOf, assertAllOf, assertNot } from "../validator.js";
 
 /**
@@ -138,13 +144,7 @@ export function evalAllOf({
   doEarlyExit: boolean | null; 
 }): void {
   assertAllOf(policyNode, nodeAddress);
-  const id: NodeIdentifier = {
-      display_name: policyNode.name,
-      address: nodeAddress,
-      type: "all_of",
-      result: null
-  }
-  evalState.trace.push(id)
+  const id: NodeIdentifier = addToTrace(evalState, policyNode, nodeAddress)
 
   let result: NodeResult
   if (negate) {
@@ -187,13 +187,7 @@ export function evalAnyOf({
 }): void {
   assertAnyOf(policyNode, nodeAddress);
 
-  const id: NodeIdentifier = {
-      display_name: policyNode.name,
-      address: nodeAddress,
-      type: "any_of",
-      result: null
-  }
-  evalState.trace.push(id)
+  const id: NodeIdentifier = addToTrace(evalState, policyNode, nodeAddress)
 
   let result: NodeResult
   if (negate) {
@@ -208,8 +202,6 @@ export function evalAnyOf({
       doEarlyExit: doEarlyExit
     })
   } else {
-    console.log("222")
-
     result = anyHelper({
       evalState: evalState, 
       nodeList: policyNode.any_of, 
@@ -238,13 +230,7 @@ export function evalNot({
   assertNot(policyNode, nodeAddress)
 
   // add this node to trace to remember execution order
-  const id: NodeIdentifier = {
-    display_name: policyNode.name,
-    address: nodeAddress,
-    type: "not",
-    result: null // placeholder
-  }
-  evalState.trace.push(id)
+  const id: NodeIdentifier = addToTrace(evalState, policyNode, nodeAddress)
 
   // save old evaluation state for post-execution comparison
 	const origChecks: DeferredCheck[] = structuredClone(evalState.deferredChecks)

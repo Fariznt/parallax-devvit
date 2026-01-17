@@ -1,4 +1,8 @@
-import type { EvaluationState, Policy, ApiKeys, ModelRegistry } from "../types.js";
+import type { Policy, ApiKeys, ModelRegistry } from "../types.js";
+import type {
+  EvaluationState, 
+  EvalRouter,
+} from "./types.js";
 import { assertSemanticCheck } from "../validator.js";
 
 export function evalSemantic({
