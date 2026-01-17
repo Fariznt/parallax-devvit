@@ -1,8 +1,11 @@
+cont testing feature tests
 
 have chatgpt go over my syntax for regex_check
 run example policies to verify work so far: regex features + combinators. formalized test file?
-do llm node definition
-test yaml_parser
+add to llm type definition and validation model presets type (althugh prob not required for coding it and running itself)
+do llm evaluation definition
+go over changes to main
+registry validation
 do rest of the node definitions
 persistent storage of action information: full logging, modmails
 make sure policy changing workflow makes sense (dont want to be using old policy, want maximum ease)
@@ -26,6 +29,8 @@ Future
 9. make address exist with line breaks
 10. change whitelist blacklist to allow and deny
 11. abstract away violation and nodeid init
+12. add to validation that semantic_check is invalid if no deafult LLMConfig or referenced key is missing etc.
+
 
 notes for me:
 devvit settings set apiKey for setting apiKey

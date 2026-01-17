@@ -9,8 +9,6 @@ export function evalSafety({
   doEarlyExit, // whether we do short-circuiting in all_of nodes or accumulate ALL violations
   text,
   imageUrl,
-  history,
-  apiKey,
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
@@ -19,8 +17,6 @@ export function evalSafety({
   doEarlyExit: boolean | null; 
   text: string;
   imageUrl?: string | null;
-  history?: string[] | null;
-  apiKey?: string;
 }): void {
 	console.warn('Safety nodes are not implemented')
 

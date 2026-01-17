@@ -150,7 +150,8 @@ export type NodeEvaluator = ({
   text,
   imageUrl,
   history,
-  apiKey,
+  models,
+  apiKeys,
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
@@ -160,7 +161,8 @@ export type NodeEvaluator = ({
   text: string;
   imageUrl?: string | null;
   history?: string[] | null;
-  apiKey?: string| null;
+  models?: ModelRegistry;
+  apiKeys?: ApiKeys;
 }) => void;
 
 export type EvaluationState = {
