@@ -89,7 +89,7 @@ export class PolicyEngine {
 		 * @param node The node with a .next_check that this function will execute
 		 * @param parentAddress The address of parentNode. If not given, node assumed to be root.
 		 */
-		function evalNode(node: Policy, parentAddress?: string): void {
+		function evalNode(node: Policy, negate: boolean, parentAddress: string): void {
 			if (!node) {
 				throw new Error("evalNode called on nonexistent node")
 			}
@@ -102,8 +102,7 @@ export class PolicyEngine {
 				if (key) return key;
 				return "policy";
 			};
-			const base = parentAddress ?? "policy";
-			const nodeAddress = `${base}/${nodeLabel(node)}`
+			const nodeAddress = `${parentAddress}/${nodeLabel(node)}`
 			
 			const key = getDispatchKey(node);
 			console.log('Determined dispatch key: ' + key)
@@ -111,6 +110,7 @@ export class PolicyEngine {
 			nodeEvaluators[key]({
 				evalState: evalState,
 				policyNode: node,
+				negate: negate,
 				nodeAddress: nodeAddress, 
 				evalNode: evalNode,
 				doEarlyExit: doEarlyExit, 
@@ -122,7 +122,7 @@ export class PolicyEngine {
 			});	
 		}
 
-		evalNode(this.policyRoot)
+		evalNode(this.policyRoot, false, "policy")
 		return evalState
 	}
 

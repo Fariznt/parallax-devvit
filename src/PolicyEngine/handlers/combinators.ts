@@ -1,19 +1,26 @@
-import type { EvaluationState, Policy, NodeIdentifier, Violation, NodeResult } from "../types.js";
+import type { 
+  EvaluationState, 
+  Policy, 
+  NodeIdentifier, 
+  Violation, 
+  NodeResult,
+   EvalRouter } from "../types.js";
 import { assertAnyOf, assertAllOf, assertNot } from "../validator.js";
 
 export function evalAllOf({
   evalState,
-	policyNode,
+  policyNode, 
+  negate,
   nodeAddress,
-	evalNode, 
-  doEarlyExit
+  evalNode,
+  doEarlyExit,
 }: {
   evalState: EvaluationState;
-	policyNode: Policy;
-	nodeAddress: string;
-	evalNode: (node: Policy, parentAddress: string) => void;
-  doEarlyExit
-  : boolean | null; 
+  policyNode: Policy;
+  negate: boolean;
+  nodeAddress: string;
+  evalNode: EvalRouter
+  doEarlyExit: boolean | null; 
 }): void {
   assertAllOf(policyNode, nodeAddress);
   const id: NodeIdentifier = {
@@ -29,7 +36,7 @@ export function evalAllOf({
   let oneFailed = false
 
 	for (const p of policyNode.all_of) {
-    evalNode(p, nodeAddress)
+    evalNode(p, negate, nodeAddress)
 		if (evalState.violations.length > origViolationCount && doEarlyExit) {
       oneFailed = true
 		}
@@ -55,14 +62,16 @@ export function evalAllOf({
 // note for annotation later: leaves downstream violations which may be interdependent
 export function evalAnyOf({
   evalState,
-	policyNode,
+  policyNode, 
+  negate,
   nodeAddress,
-	evalNode, 
+  evalNode,
 }: {
   evalState: EvaluationState;
-	policyNode: Policy;
-	nodeAddress: string;
-	evalNode: (node: Policy, parentAddress: string) => void;
+  policyNode: Policy;
+  negate: boolean;
+  nodeAddress: string;
+  evalNode: EvalRouter
 }): void {
   assertAnyOf(policyNode, nodeAddress);
 
@@ -79,7 +88,7 @@ export function evalAnyOf({
 	for (const p of policyNode.any_of) {
     const preBranchViol = structuredClone(evalState.violations)
     const preBranchDef = structuredClone(evalState.deferredChecks)
-    evalNode(p, nodeAddress)
+    evalNode(p, negate, nodeAddress)
     const newDeferred = (preBranchDef.length != evalState.deferredChecks.length)
     const newViolation = (evalState.violations.length != preBranchViol.length)
 
@@ -116,14 +125,16 @@ export function evalAnyOf({
 export function evalNot({
   evalState,
 	policyNode,
+  negate,
   nodeAddress,
 	evalNode, 
   text,
 }: {
   evalState: EvaluationState;
 	policyNode: Policy;
+  negate: boolean;
 	nodeAddress: string;
-	evalNode: (node: Policy, parentAddress: string) => void;
+	evalNode: EvalRouter
   text: string;
 }): void {
   Error("Not nodes are not implemented")
@@ -141,7 +152,7 @@ export function evalNot({
 
 	// const origState: EvaluationState = structuredClone(evalState)
 
-  // evalNode(child, nodeAddress)
+  // evalNode(child, negate, nodeAddress)
 
   // const id: NodeIdentifier = {
   //   display_name: policyNode.name,

@@ -1,4 +1,11 @@
-import type { EvaluationState, Policy, NodeIdentifier, Violation, NodeResult } from "../types.js";
+import type { 
+  EvaluationState, 
+  Policy, 
+  NodeIdentifier, 
+  Violation, 
+  NodeResult,
+  EvalRouter
+} from "../types.js";
 import { assertMatchCheck } from "../validator.js";
 
 function evalPatterns(patterns: string[], flags: string, text: string): {
@@ -53,17 +60,18 @@ function getNodeId(
 }
 
 export function evalMatch({
-  evalState, // evaluation state (info accumulator)
-	policyNode, // the node this was called for
+  evalState,
+  policyNode, 
+  negate,
   nodeAddress,
-	evalNode, // function to do checks on a child node
-  // content info and evaluation specifications
+  evalNode,
   text,
 }: {
   evalState: EvaluationState;
-	policyNode: Policy;
-	nodeAddress: string;
-	evalNode: (node: Policy, parentAddress: string) => void;
+  policyNode: Policy;
+  negate: boolean;
+  nodeAddress: string;
+  evalNode: EvalRouter;
   text: string;
 }): void {
   assertMatchCheck(policyNode, nodeAddress)
@@ -101,7 +109,7 @@ export function evalMatch({
   if (fail) {
     if (policyNode.next_check) {
       // there is a next check. This failure only means that we escalate to another node
-      evalNode(policyNode.next_check, nodeAddress)
+      evalNode(policyNode.next_check, negate, nodeAddress)
     } else {
       if (useGlobalSeq && whitelist) {
         explanation = `The following patterns required failed to match in sequence:
