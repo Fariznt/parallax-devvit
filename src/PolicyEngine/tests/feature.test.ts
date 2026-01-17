@@ -1,3 +1,8 @@
+/**
+ * Feature tests
+ * Uses match node whitelisting as a default for combinator tests
+ */
+
 import { describe, it, expect } from 'vitest';
 import { PolicyEngine } from '../engine.js';
 import { EvaluationResult } from '../types.js';
@@ -14,6 +19,27 @@ async function policyViolates(policyJson: any, text: string): Promise<boolean> {
   const res: EvaluationResult = await e.evaluate({ text });
   return res.violation;
 }
+
+/**
+ * Runs a small example of 'not' combinator on
+ * a node requiring match with 'a' (regex whitelist)
+ */
+async function not(text: string): Promise<boolean> {
+  console.log(policies.not_p)
+  return policyViolates(policies.not_p, text)
+}
+
+describe(`not 'a'`, async () => {
+  it(`passes when 'a' not present`, async () => {
+    const result = await not('xyz');
+    expect(result).toBe(false);
+  });
+
+  it('violates when a present', async () => {
+    const result = await not('xyza');
+    expect(result).toBe(true);
+  });
+});
 
 /**
  * Runs a small example of all_of combinator that requires
@@ -47,6 +73,38 @@ describe('all_of [a,b]', async () => {
 });
 
 /**
+ * Runs a small example of all_of wrapped in not:
+ * negates the requirement that BOTH 'a' and 'b' match
+ * i.e. one or more of 'a' 'b' must fail to match
+ * Returns true upon violation.
+ */
+async function notAllOf(text: string): Promise<boolean> {
+  return policyViolates(policies.not_all_of_p, text)
+}
+
+describe('not(all_of) [a,b]', async () => {
+  it('violates when both letters present (since NOT(all_of) fails)', async () => {
+    const result = await notAllOf('ab');
+    expect(result).toBe(true);
+  });
+
+  it('passes when one b not present', async () => {
+    const result = await notAllOf('xyza');
+    expect(result).toBe(false);
+  });
+
+  it('passes when one a not present', async () => {
+    const result = await notAllOf('bxyz');
+    expect(result).toBe(false);
+  });
+
+  it('passes when neither present', async () => {
+    const result = await notAllOf('xyz');
+    expect(result).toBe(false);
+  });
+});
+
+/**
  * Runs a small example of any_of combinator that requires
  * any of 'a' and 'b' to be in input text (regex whitelist).
  * Returns true upon violation
@@ -73,6 +131,38 @@ describe('any_of [a,b]', async () => {
   it('violates when neither present', async () => {
     const result = await anyOf('xyz')
     expect(result).toBe(true)
+  })
+})
+
+/**
+ * Runs a small example of any_of wrapped in not:
+ * negates the requirement that any of 'a' and 'b' match
+ * i.e. none of 'a' 'b' may match.
+ * Returns true upon violation.
+ */
+async function notAnyOf(text: string): Promise<boolean> {
+  return policyViolates(policies.not_any_of_p, text)
+}
+
+describe('not(any_of) [a,b]', async () => {
+  it('violates when both are present (since NOT(any_of) fails)', async () => {
+    const result = await notAnyOf('ab')
+    expect(result).toBe(true)
+  })
+
+  it('violates when b present', async () => {
+    const result = await notAnyOf('bxyz')
+    expect(result).toBe(true)
+  })
+
+  it('violates when a present', async () => {
+    const result = await notAnyOf('xyza')
+    expect(result).toBe(true)
+  })
+
+  it('passes when neither present', async () => {
+    const result = await notAnyOf('xyz')
+    expect(result).toBe(false)
   })
 })
 

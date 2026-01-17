@@ -1,9 +1,15 @@
-rename regex check to match check.
+test not w/ regex (feature test)
+implement not for any_of/all_of
+test not w/ any_of, all_of 
+
 do llm evaluation definition
+// test llm evaluation
+
 go over changes to main
+for language and safety nodes need to define schema for apikey input
+organize future tasks
 registry validation
-do rest of the node definitions
-persistent storage of action information: full logging, modmails
+persistent storage of action information: full logging, modmails?
 make sure policy changing workflow makes sense (dont want to be using old policy, want maximum ease)
 add function header comments
 
@@ -22,11 +28,22 @@ Future
 8. hella documentation
     more than one semantic node in any_of block is invalid. enforce through validation
     input threads need identifiers
+    any of leaves downstream violations which may be interdependent
 9. make address exist with line breaks
 10. change whitelist blacklist to allow and deny
 11. abstract away violation and nodeid init
 12. add to validation that semantic_check is invalid if no deafult LLMConfig or referenced key is missing etc.
-
+13. get rid of indexing in addresses... its unnecessary
+14. make types location consistent (theres some in validation rn)
+15 enforce this in validation:
+  if (newDefChecks > 1) {
+    throw new Error(
+      `1> computation-deferring nodes are not permitted downstream an 'any_of' node
+       or downstream a 'not' node followed by an 'all_of' node.
+      A policy refactor is necessarily possible and cheaper by combining combinator logic 
+      into a semantic_node.`
+    )
+  }
 
 notes for me:
 devvit settings set apiKey for setting apiKey

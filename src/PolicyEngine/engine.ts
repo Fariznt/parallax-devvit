@@ -105,8 +105,6 @@ export class PolicyEngine {
 			const nodeAddress = `${parentAddress}/${nodeLabel(node)}`
 			
 			const key = getDispatchKey(node);
-			console.log('Determined dispatch key: ' + key)
-			console.log('Dispatching to function: ' + nodeEvaluators[key])
 			nodeEvaluators[key]({
 				evalState: evalState,
 				policyNode: node,

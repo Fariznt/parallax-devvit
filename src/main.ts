@@ -139,30 +139,22 @@ Devvit.addTrigger({
   event: "CommentCreate", // TODO: include posts
   onEvent: async (event: TriggerEventType["CommentCreate"], context) => {
 
-    const raw = await context.settings.get("policyYaml");
-    if (typeof raw !== "string" || raw.length === 0) {
-      throw new Error('Setting "PolicyYaml" must be a non-empty string');
-    }
-    console.log(parseYamlSubset(raw))
-    assertPolicy(raw)
+    console.log('CommentCreate event triggered');
 
+    const comment = event.comment;
+    const text = comment?.body ?? "";
+    if (!comment || !text) return;
 
-    // console.log('CommentCreate event triggered');
+    const commentThread: string[] = await getThread(context, comment);
+    console.log('commentThread:', commentThread)
 
-    // const comment = event.comment;
-    // const text = comment?.body ?? "";
-    // if (!comment || !text) return;
+    console.log("Evaluation text:" + text);
 
-    // const commentThread: string[] = await getThread(context, comment);
-    // console.log('commentThread:', commentThread)
-
-    // console.log("Evaluation text:" + text);
-
-    // const apiKey = await getKey(context);
-    // const engine = await getEngine(context);
-    // const result = await engine.evaluate({ text: text, history: commentThread, apiKey: apiKey, doEarlyExit: false });
-    // console.log('Evaluation result:', result);
-    // resultApply(result, comment.id, context);
+    const apiKey = await getKey(context);
+    const engine = await getEngine(context);
+    const result = await engine.evaluate({ text: text, history: commentThread, apiKey: apiKey, doEarlyExit: false });
+    console.log('Evaluation result:', result);
+    resultApply(result, comment.id, context);
   },
 });
 

@@ -37,9 +37,7 @@ export function recursiveNorm(policy: Policy, inheritedSeverity?: number): void 
 	}
 
 	if ("not" in policy) {
-		const n = policy.not;
-		if (Array.isArray(n)) for (const child of n) recursiveNorm(child, effective);
-		else recursiveNorm(n, effective);
+		recursiveNorm(policy.not, effective);
 		return;
 	}
 }

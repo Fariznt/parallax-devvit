@@ -1,15 +1,35 @@
 {
+  "not_p": {
+    "not": { "match_check": { "patterns": ["a"] } }
+  },
   "all_of_p": {
     "all_of": [
       { "match_check": { "patterns": ["a"] } },
       { "match_check": { "patterns": ["b"] } }
     ]
   },
+  "not_all_of_p": {
+    "not": {
+      "all_of": [
+        { "match_check": { "patterns": ["a"] } },
+        { "match_check": { "patterns": ["b"] } }
+      ]
+    }
+  },
   "any_of_p": {
     "any_of": [
       { "match_check": { "patterns": ["a"] } },
       { "match_check": { "patterns": ["b"] } }
     ]
+  },
+
+  "not_any_of_p": {
+    "not": {
+      "any_of": [
+        { "match_check": { "patterns": ["a"] } },
+        { "match_check": { "patterns": ["b"] } }
+      ]
+    }
   },
   "regex_whitelist": {
     "match_check": {
