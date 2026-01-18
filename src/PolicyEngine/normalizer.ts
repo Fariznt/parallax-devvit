@@ -10,12 +10,12 @@ export function normalize(policy: Policy) {
  * @param policy 
  * @param inheritedSeverity 
  */
-export function recursiveNorm(policy: Policy, inheritedSeverity?: number): void {
+export function recursiveNorm(policy: Policy, inheritedSeverity?: number | string): void {
     // nodes inherit parent's severity if null
 	const effective = policy.severity ?? inheritedSeverity; // effective severity
 	if (policy.severity == null) policy.severity = effective; 
 
-    // whitelist is false by default if not included
+    // blacklist is false by default if not included
     if ("match_check" in policy) {
 			const mc = policy.match_check;
 			if (mc.blacklist === undefined) {
