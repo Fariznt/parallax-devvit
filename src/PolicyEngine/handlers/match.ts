@@ -1,11 +1,13 @@
 import type { 
-  EvaluationState, 
   Policy, 
   NodeIdentifier, 
   Violation, 
   NodeResult,
-  EvalRouter
 } from "../types.js";
+import type {
+  EvaluationState, 
+  EvalRouter,
+} from "./types.js";
 import { assertMatchCheck } from "../validator.js";
 
 function evalPatterns(patterns: string[], flags: string, text: string): {

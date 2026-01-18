@@ -45,7 +45,7 @@ export type SafetyCheckNode = {
 		| { rules: SafetyRule[] }
 	);
 };
-export type SemanticCheckNode = { semantic_check: { instruction: string } };
+export type SemanticCheckNode = { semantic_check: { rule: string } };
 export type LanguageCheckNode = { language_check: { allowed: string[] } };
 
 function err(path: string, msg: string): never {
@@ -62,6 +62,12 @@ function assertString(x: unknown, path: string): asserts x is string {
 
 function assertNumber(x: unknown, path: string): asserts x is number {
 	if (typeof x !== "number") err(path, "expected number");
+}
+
+function assertSeverity(x: unknown, path: string): asserts x is number {
+	if (typeof x !== "number" && typeof x !== "string") {
+		err(path, "expected number or string");
+	}
 }
 
 function assertBoolean(x: unknown, path: string): asserts x is boolean {
@@ -158,6 +164,11 @@ export function assertSemanticCheck(node: Record<string, unknown>, path: string)
 	const v = node.semantic_check;
 	assertObject(v, `${path}.semantic_check`);
 	assertString(v.instruction, `${path}.semantic_check.instruction`);
+	if (v.next_check) {
+		err(`${path}.next_check`, 
+			`Semantic checks must be the last check in any sequence where they are used.
+			Refactor by encoding downstream checks into the semantic.`);
+	}
 }
 
 export function assertLanguageCheck(node: Record<string, unknown>, path: string): asserts node is LanguageCheckNode {
@@ -214,7 +225,7 @@ export function assertPolicy(x: unknown, path = "policy", disallowSemantic = fal
 		assertPolicy(x.next_check, `${path}/${nodeLabel(x.next_check)}`);
 	}
 	if ("severity" in x && x.severity !== undefined) {
-		assertNumber(x.severity, `${path}.severity`);
+		assertSeverity(x.severity, `${path}.severity`);
 	}
 
 	// combinator/logic nodes

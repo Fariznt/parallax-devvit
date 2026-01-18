@@ -1,8 +1,8 @@
-import type { Policy, ApiKeys, ModelRegistry } from "../types.js";
-import type {
-  EvaluationState, 
-  EvalRouter,
-} from "./types.js";
+import type { Policy, ApiKeys, ModelRegistry, NodeIdentifier, DeferredCheck } from "../types.js";
+import type { EvaluationState, EvalRouter } from "./types.js";
+import {
+  addToTrace,
+} from "./utils.js"
 import { assertSemanticCheck } from "../validator.js";
 
 export function evalSemantic({
@@ -11,28 +11,34 @@ export function evalSemantic({
   negate,
   nodeAddress,
   evalNode,
-  doEarlyExit,
-  text,
-  imageUrl,
-  history,
-  models,
-  apiKeys,
 }: {
   evalState: EvaluationState;
   policyNode: Policy;
   negate: boolean;
   nodeAddress: string;
-  evalNode: (
-  node: Policy, negate: boolean, parentAddress: string
-  ) => void;
-  doEarlyExit: boolean | null; 
-  text: string;
-  imageUrl?: string | null;
-  history?: string[] | null;
-  models?: ModelRegistry;
-  apiKeys?: ApiKeys;
+  evalNode: EvalRouter;
 }): void {
-	console.warn('Semantic nodes are not implemented')
+  assertSemanticCheck(policyNode, nodeAddress);
+  const id: NodeIdentifier = addToTrace(evalState, policyNode, nodeAddress)
+
+  const defCheck: DeferredCheck = {
+    rule: policyNode.semantic_check.rule,
+    negate: negate,
+    severity: policyNode.severity,
+    node_id: id
+  }
+
+  evalState.deferredChecks.push(defCheck)
+
+  // no next checks is an enforced invariant. no other checks to do 
+  // on this path
+
+  id.result = "deferred"
+}
+
+export function doDeferredChecks(checks: DeferredCheck[]) {
+  
+  Error("function not implemented")
 }
 
 // LLM-only evaluation code---was here before policy tree implementation
@@ -145,6 +151,7 @@ export function evalSemantic({
 //     );
 //   }
 
+
 // async fetchLLMResponse(
 //     apiKey: string, 
 //     url: string, 
@@ -163,19 +170,18 @@ export function evalSemantic({
 //     ];
 
 //     console.log('messages: ' + JSON.stringify(messages));
-
-//     const response = await fetch(url, {
-//         method: "POST",
-//         headers: {
-//             "Content-Type": "application/json",
-//             "Authorization": `Bearer ${apiKey}`,
-//         },
-//         body: JSON.stringify({
-//             model,
-//             messages,
-//             temperature: 0,
-//         }),
-//     });
+    // const response = await fetch(url, {
+    //     method: "POST",
+    //     headers: {
+    //         "Content-Type": "application/json",
+    //         "Authorization": `Bearer ${apiKey}`,
+    //     },
+    //     body: JSON.stringify({
+    //         model,
+    //         messages,
+    //         temperature: 0,
+    //     }),
+    // });
 
 //     if (!response.ok) {
 //         const errText = await response.text();

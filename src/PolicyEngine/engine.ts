@@ -1,5 +1,3 @@
-// ts
-
 import { KeyValueStorage } from "@devvit/public-api/apis/key-value-storage/KeyValueStorage.js";
 import {
   Policy,
@@ -10,12 +8,14 @@ import {
   Violation,
   EvaluationResult,
 	DeferredCheck,
-	NodeEvaluator,
-	EvaluationState,
 	ModelRegistry,
 	ModelConfig,
 	ApiKeys
 } from "./types.js";
+import {
+	NodeEvaluator,
+	EvaluationState,
+} from "./handlers/types.js"
 import { nodeEvaluators, getDispatchKey } from "./handlers/index.js"; 
 import { assertPolicy } from "./validator.js";
 import { normalize } from "./normalizer.js";
@@ -62,14 +62,12 @@ export class PolicyEngine {
 			text,
 			imageUrl,
 			history,
-			apiKeys,
 		}: {
 			// content info and evaluation specifications
 			doEarlyExit: boolean | null, // whether we do short-circuiting in all_of
 			text: string;
 			imageUrl: string | null;
 			history: string[] | null;
-			apiKeys: ApiKeys;
 		}
 	): EvaluationState {
 		// Init empty evaluation state---this will be mutated and carry the evaluation-related info
@@ -80,8 +78,6 @@ export class PolicyEngine {
 			earlyExit: false,
 			deferredChecks: []
 		}
-
-		const models: ModelRegistry = this.models
 
 		/**
 		 * Function called by a node evaluator on the node it was called on when doing a downstream
@@ -115,8 +111,6 @@ export class PolicyEngine {
 				text: text, 
 				imageUrl: imageUrl, 
 				history: history,
-				models: models,
-				apiKeys: apiKeys
 			});	
 		}
 
@@ -149,13 +143,11 @@ export class PolicyEngine {
 			console.warn("Image input detected but not yet supported; ignoring image.");
 		}
 
-
 		const evalState: EvaluationState = this.evaluateHelper({ 
 			doEarlyExit: doEarlyExit, 
 			text: text, 
 			imageUrl:imageUrl, 
 			history: history, 
-			apiKeys: apiKeys
 		});
 
 
