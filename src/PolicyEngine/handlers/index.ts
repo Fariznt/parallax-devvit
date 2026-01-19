@@ -1,8 +1,9 @@
 
-import { NodeEvaluator, Policy } from "../types.js";
+import { Policy } from "../types.js";
+import { NodeEvaluator } from "./types.js";
 import { evalAnyOf, evalAllOf, evalNot } from "./combinators.js";
 import { evalMatch } from "./match.js";
-import { evalSemantic } from "./semantic.js";
+import { evalSemantic, doDeferredChecks } from "./semantic.js";
 import { evalLanguage } from "./language.js";
 import { evalSafety } from "./safety.js";
 
@@ -14,6 +15,7 @@ export {
   evalSemantic,
   evalLanguage,
   evalSafety,
+  doDeferredChecks,
 };
 
 export const nodeEvaluators: Record<string, NodeEvaluator> = {
@@ -25,7 +27,6 @@ export const nodeEvaluators: Record<string, NodeEvaluator> = {
   language_check: evalLanguage,
   safety_check: evalSafety,
 };
-
 
 const DISPATCH_KEYS = Object.keys(nodeEvaluators) as Array<keyof typeof nodeEvaluators>;
 

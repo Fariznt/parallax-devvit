@@ -4,56 +4,88 @@ import {
   Predicate,
   Combinator,
   NodeSpecification,
-  NodeIdentifier,
+	ModelConfig,
+} from "./types.js";
+import {
+  NodeTrace,
   Violation,
   EvaluationResult,
 	DeferredCheck,
-	ModelRegistry,
-	ModelConfig,
-	ApiKeys
-} from "./types.js";
-import {
 	NodeEvaluator,
 	EvaluationState,
 } from "./handlers/types.js"
-import { nodeEvaluators, getDispatchKey } from "./handlers/index.js"; 
+import { nodeEvaluators, getDispatchKey, doDeferredChecks } from "./handlers/index.js"; 
 import { assertPolicy } from "./validator.js";
 import { normalize } from "./normalizer.js";
 
+/**
+ * TODO
+ */
 export class PolicyEngine {
-  // private readonly baseUrl: string | undefined;
-  // private readonly model: string | undefined;
   private readonly policyRoot: Policy;
-	private readonly models: ModelRegistry; 
-
-  constructor(opts: {
-    policyJson: Record<string, unknown>;
-		models?: ModelRegistry;
-  }) {
-		assertPolicy(opts.policyJson)
-		normalize(opts.policyJson)
-		this.policyRoot = opts.policyJson as Policy
-		if (!opts.models) {
-			this.models = {
-				default: null,
-				presets: {}
-			} as ModelRegistry
-		} else {
-			this.models = opts.models as ModelRegistry
-		}
-  }
-
-	addModel(key: string, config: ModelConfig): void {
-		this.models.presets[key] = config;
-
-		// set default if none exists yet
-		if (this.models.default === null) {
-			this.models.default = key;
-		}
-	}
+	private readonly model: ModelConfig| null;
+	private readonly noteMax: number; 
 
 	/**
 	 * TODO
+	 * @param policyJson 
+	 * @param model 
+	 * @param noteMax 
+	 */
+  constructor(
+    policyJson: Record<string, unknown>,
+		model?: ModelConfig,
+		noteMax: number = 100
+  ) {
+		assertPolicy(policyJson)
+		normalize(policyJson)
+		this.policyRoot = policyJson as Policy
+		if (model 
+			&& typeof model.baseUrl === "string"
+			&& typeof model.modelName === "string"
+		) {
+			this.model = model
+		} else {
+			this.model = null
+		}
+		this.noteMax = noteMax
+	}
+
+	buildModNote(violations: Violation[]): string {
+		const MAX = this.noteMax;
+
+		const parts = violations.map(v => {
+			const displayName = v.node.display_name?.trim();
+			const fallback = String(v.node.type);
+			return displayName || fallback;
+		});
+
+		// Builds "violated node 1, node 2, ... node n +X" 
+		// where +X counts *unlisted* violations.
+		const build = (k: number): string => {
+			if (k <= 0) return `+${violations.length}`;
+			const listed = parts.slice(0, k).join(", ");
+			const unlistedCount = violations.length - k;
+			return unlistedCount > 0 ? `${listed} +${unlistedCount}` : listed;
+		};
+
+		// If everything fits, return it.
+		if (build(parts.length).length <= MAX) return build(parts.length);
+
+		// Find the largest k such that "first k items + +N" fits.
+		// O(n^2) worst-case but n is tiny (violations list size).
+		for (let k = parts.length - 1; k >= 0; k--) {
+			const s = build(k);
+			if (s.length <= MAX) return s;
+		}
+
+		// Even "+N" might be > MAX only if N has absurd digits; edge case handling
+		return build(0).slice(0, MAX);
+	}
+
+
+	/**
+	 * TODO annotation
 	 * @param param0 
 	 */
 	evaluateHelper(
@@ -61,13 +93,13 @@ export class PolicyEngine {
 			doEarlyExit,
 			text,
 			imageUrl,
-			history,
+			contextList,
 		}: {
 			// content info and evaluation specifications
 			doEarlyExit: boolean | null, // whether we do short-circuiting in all_of
 			text: string;
 			imageUrl: string | null;
-			history: string[] | null;
+			contextList: string[] | null;
 		}
 	): EvaluationState {
 		// Init empty evaluation state---this will be mutated and carry the evaluation-related info
@@ -110,7 +142,7 @@ export class PolicyEngine {
 				doEarlyExit: doEarlyExit, 
 				text: text, 
 				imageUrl: imageUrl, 
-				history: history,
+				contextList: contextList,
 			});	
 		}
 
@@ -122,45 +154,54 @@ export class PolicyEngine {
 		{
 			text,
 			imageUrl,
-			history,
-			apiKeys,
+			contextList,
+			apiKey,
 			doEarlyExit,
 		}: {
 			text: string;
 			imageUrl?: string | null;
-			history?: string[]| null;
-			apiKeys?: ApiKeys;
+			contextList?: string[]| null;
+			apiKey?: string | null;
 			doEarlyExit?: boolean
 		}
 	): Promise<EvaluationResult> {
 		// undefined interpreted as null
 		imageUrl ??= null;
-		history ??= null; 
+		contextList ??= null; 
 		doEarlyExit ??= false
-		apiKeys ??= {}
-
-		if (imageUrl !== null) {
-			console.warn("Image input detected but not yet supported; ignoring image.");
-		}
+		apiKey ??= null
 
 		const evalState: EvaluationState = this.evaluateHelper({ 
 			doEarlyExit: doEarlyExit, 
 			text: text, 
 			imageUrl:imageUrl, 
-			history: history, 
+			contextList: contextList, 
 		});
+		
+		if (this.model === null || apiKey === null) {
+			if (evalState.deferredChecks.length != 0) {
+				throw new Error("Policy has semantic checks, but model or api key is not defined.")
+			}
+		} else {
+			doDeferredChecks(
+					evalState, contextList, text, this.model.baseUrl, this.model.modelName, apiKey)
+		}
 
+		// TODO: build evaluation result. consider returning simply evaluatoin state
+		// but if not, do evaluationstate + 100 char label + violation boolean
+		
+		//buildLabel(evalState)
 
-		const PLACEHOLDER_EVALUATION_RESULT: EvaluationResult = {
+		const evalResult: EvaluationResult = {
 			violations: evalState.violations,
 			violation: evalState.violations.length > 0,
-			modNote: "", // todo
+			modNote: this.buildModNote(evalState.violations),
 			trace: evalState.trace,
 			earlyExit: evalState.earlyExit,
 		};
 			
 		// temp return
-		return PLACEHOLDER_EVALUATION_RESULT
+		return evalResult
 	}
 
 }

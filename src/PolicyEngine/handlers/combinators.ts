@@ -1,13 +1,13 @@
 import type { 
   Policy, 
-  NodeIdentifier, 
+} from "../types.js";
+import type {
   Violation, 
   NodeResult,
   EvaluationResult,
-  DeferredCheck 
-} from "../types.js";
-import type {
+  DeferredCheck,
   EvaluationState, 
+  NodeTrace, 
   EvalRouter,
 } from "./types.js";
 import {
@@ -144,7 +144,7 @@ export function evalAllOf({
   doEarlyExit: boolean | null; 
 }): void {
   assertAllOf(policyNode, nodeAddress);
-  const id: NodeIdentifier = addToTrace(evalState, policyNode, nodeAddress)
+  const nodeTrace: NodeTrace = addToTrace(evalState, policyNode, nodeAddress)
 
   let result: NodeResult
   if (negate) {
@@ -167,7 +167,7 @@ export function evalAllOf({
     })
   }
 
-  id.result = result
+  nodeTrace.result = result
 }
 
 export function evalAnyOf({
@@ -187,7 +187,7 @@ export function evalAnyOf({
 }): void {
   assertAnyOf(policyNode, nodeAddress);
 
-  const id: NodeIdentifier = addToTrace(evalState, policyNode, nodeAddress)
+  const nodeTrace: NodeTrace = addToTrace(evalState, policyNode, nodeAddress)
 
   let result: NodeResult
   if (negate) {
@@ -211,7 +211,7 @@ export function evalAnyOf({
     })
   }
 
-  id.result = result
+  nodeTrace.result = result
 }
 
 export function evalNot({
@@ -230,7 +230,7 @@ export function evalNot({
   assertNot(policyNode, nodeAddress)
 
   // add this node to trace to remember execution order
-  const id: NodeIdentifier = addToTrace(evalState, policyNode, nodeAddress)
+  const nodeTrace: NodeTrace = addToTrace(evalState, policyNode, nodeAddress)
 
   // save old evaluation state for post-execution comparison
 	const origChecks: DeferredCheck[] = structuredClone(evalState.deferredChecks)
@@ -251,6 +251,6 @@ export function evalNot({
     // no new violations or deferred checks
     result = "pass"
   }
-  id.result = result
+  nodeTrace.result = result
 }
 

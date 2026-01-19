@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { PolicyEngine } from '../engine.js';
-import { EvaluationResult } from '../types.js';
+import { EvaluationResult } from '../handlers/types.js';
 import policiesJson from "./policies/feature_policies.json" with { type: "json" };
 
 const policies: any = policiesJson;
@@ -15,7 +15,7 @@ const policies: any = policiesJson;
  * upon violation.
  */
 async function policyViolates(policyJson: any, text: string): Promise<boolean> {
-  const e = new PolicyEngine({ policyJson: policyJson });
+  const e = new PolicyEngine(policyJson);
   const res: EvaluationResult = await e.evaluate({ text });
   return res.violation;
 }
@@ -25,7 +25,6 @@ async function policyViolates(policyJson: any, text: string): Promise<boolean> {
  * a node requiring match with 'a' (regex whitelist)
  */
 async function not(text: string): Promise<boolean> {
-  console.log(policies.not_p)
   return policyViolates(policies.not_p, text)
 }
 
@@ -141,6 +140,7 @@ describe('any_of [a,b]', async () => {
  * Returns true upon violation.
  */
 async function notAnyOf(text: string): Promise<boolean> {
+  console.log(policies.not_any_of_p)
   return policyViolates(policies.not_any_of_p, text)
 }
 
@@ -287,3 +287,4 @@ describe('regex_check features'), () => {
     });
   });
 }
+

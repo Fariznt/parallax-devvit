@@ -1,3 +1,8 @@
+remove credentials from evluators since that will happen through engine more directly to batch
+redefine deferredcheck to include some sort of model identifier (same key as registry?)
+    go with one llm model per now but architecturally, multiple should be supported
+    figure out how to balance these concerns
+
 do llm evaluation definition (basic)
 maybe build in openai + gemini support? or something
 
@@ -40,6 +45,8 @@ Future
       into a semantic_node.`
     )
   }
+16. consider capping deferred checks such that past a threshold its split
+and/or more evaluation modes like cross-content batching, 0 batching
 
 notes for me:
 devvit settings set apiKey for setting apiKey

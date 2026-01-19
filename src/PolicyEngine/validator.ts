@@ -45,7 +45,7 @@ export type SafetyCheckNode = {
 		| { rules: SafetyRule[] }
 	);
 };
-export type SemanticCheckNode = { semantic_check: { rule: string } };
+export type SemanticCheckNode = { semantic_check: { condition: string } };
 export type LanguageCheckNode = { language_check: { allowed: string[] } };
 
 function err(path: string, msg: string): never {
@@ -163,7 +163,7 @@ export function assertSafetyCheck(node: Record<string, unknown>, path: string): 
 export function assertSemanticCheck(node: Record<string, unknown>, path: string): asserts node is SemanticCheckNode {
 	const v = node.semantic_check;
 	assertObject(v, `${path}.semantic_check`);
-	assertString(v.instruction, `${path}.semantic_check.instruction`);
+	assertString(v.instruction, `${path}.semantic_check.condition`);
 	if (v.next_check) {
 		err(`${path}.next_check`, 
 			`Semantic checks must be the last check in any sequence where they are used.
@@ -228,20 +228,29 @@ export function assertPolicy(x: unknown, path = "policy", disallowSemantic = fal
 		assertSeverity(x.severity, `${path}.severity`);
 	}
 
-	// combinator/logic nodes
-	if ("any_of" in x) return assertAnyOf(x, path);
-	if ("all_of" in x) return assertAllOf(x, path);
-	if ("not" in x) return assertNot(x, path);
+  const presentCombinators = COMBINATOR_NAMES.filter(k => k in x);
+  const presentPredicates = PREDICATE_NAMES.filter(k => k in x);
 
-	// predicate/evaluation nodes
-	const presentChecks = PREDICATE_NAMES.filter(k => k in x);
-	if (presentChecks.length !== 1) err(path, `expected exactly 1 predicate (${PREDICATE_NAMES.join(", ")})`);
+  if (presentCombinators.length + presentPredicates.length !== 1) {
+    err(
+      path,
+      `expected exactly 1 node operator (one of: ${[...COMBINATOR_NAMES, ...PREDICATE_NAMES].join(", ")})`
+    );
+  }
 
-	const k = presentChecks[0]!;
+	if (presentCombinators.length === 1) {
+		const c = presentCombinators[0]!;
+		if (c === "any_of") return assertAnyOf(x, path);
+		if (c === "all_of") return assertAllOf(x, path);
+		return assertNot(x, path);
+	}
+
+	const k = presentPredicates[0]!;
 	if (k === "match_check") return assertMatchCheck(x, path);
 	if (k === "safety_check") return assertSafetyCheck(x, path);
 	if (k === "language_check") return assertLanguageCheck(x, path);
-	if (k === "semantic_check") return assertSemanticCheck(x, path);
+	return assertSemanticCheck(x, path);
+
 
 	// new checks added here
 

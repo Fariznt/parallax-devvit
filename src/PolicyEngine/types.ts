@@ -5,13 +5,6 @@ export type ModelConfig = {
   baseUrl: string;
 };
 
-export type ModelRegistry = {
-  default: string | null;
-  presets: Record<string, ModelConfig>; // key used in policy definition -> config
-};
-
-export type ApiKeys = Record<string, string> // same key -> api key strings
-
 // === Definitions for Policy definition ===
 
 export type SafetyCategory =
@@ -60,7 +53,7 @@ export type NodeSpecification = {
 	safety_check: {
 		scope: 'text' | 'image' | 'both';
 	} & SafetySpecification;
-  semantic_check: { rule: string };
+  semantic_check: { condition: string };
 	language_check: { allowed: string[] }; // to be implemented using language.googleapis.com
   // NEW CHECKS ADDED HERE (subsets of match/safety, length, capitalization percentage)
 };
@@ -88,51 +81,3 @@ export type Policy = {
 	severity?: Severity; // optional severity score for violating this check
 } & (Predicate | Combinator);
 
-// === Definitions for PolicyEngine evaluation output ===
-
-// Information corresponding to some predicate, returned by evaluateHelper so that
-// expensive calls can be done with batching of all checks that wanted to use the 
-// expensive tool (ex. LLM)
-export type DeferredCheck = {
-	rule: string;
-	negate: boolean; // flipped by a NOT node
-  severity?: Severity;
-  node_id: NodeIdentifier;
-}
-
-export type NodeType = 
-  | "match_check" | "safety_check" | "semantic_check" 
-  | "language_check" | "all_of" | "any_of" | "not" // NEW CHECKS ADDED HERE
-
-export type NodeResult = 
-"pass" | "fail" | "deferred" | null // null means not yet evaluated 
-
-// An identifier of nodes in the policy-tree generated lazily at evaluation time
-// Exists for humans to understand how policy evaluation occurred and details
-export type NodeIdentifier = { // generated at evaluation time lazily
-	display_name?: string;
-	// address in policy tree as root...grandparent.parent.node where each is the name or type of the node
-	address: string;
-	type: NodeType;
-  // whether the check passed at the single-node level; deferred for downstream deferredChecks
-  result: NodeResult; 
-}
-
-// Policy violation representation used in output
-export type Violation = {
-	node: NodeIdentifier;
-	explanation: string;
-	// optional severity score, if applicable (useful for fully autonomous moderation w/ isComprehensive off)
-	severity?: Severity; 
-}
-
-// The object received by the worker or event handler using PolicyEngine
-export type EvaluationResult = {
-	violations: Violation[]; // list of all violations found during evaluation
-  violation: boolean; // whether the content violates the policy; true if violations length > 0
-  modNote: string; // 100 character of less, possibly incomplete summary-note of explanation
-  trace: NodeIdentifier[]; // record of execution through policy tree
-	// Whether evaluation was short-circuited in all_of, which indicates incompleteness of 
-  // explanation/violations. Should be true if only caring about violation vs no violation
-	earlyExit: boolean; 
-}

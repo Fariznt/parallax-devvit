@@ -1,10 +1,10 @@
 import type { 
   Policy, 
-  NodeIdentifier, 
-  Violation, 
-  NodeResult,
 } from "../types.js";
 import type {
+  NodeTrace, 
+  Violation, 
+  NodeResult,
   EvaluationState, 
   EvalRouter,
 } from "./types.js";
@@ -51,8 +51,8 @@ function evalPatterns(patterns: string[], flags: string, text: string): {
 
 function getNodeId(
   name: string | undefined, nodeAddress: string, result: NodeResult
-): NodeIdentifier {
-  const id: NodeIdentifier = {
+): NodeTrace {
+  const id: NodeTrace = {
     display_name: name,
     address: nodeAddress,
     type: "match_check",
@@ -79,7 +79,7 @@ export function evalMatch({
   assertMatchCheck(policyNode, nodeAddress)
   console.log("running match with negate = " + negate)
 
-  const id: NodeIdentifier = getNodeId(policyNode.name, nodeAddress, null)
+  const id: NodeTrace = getNodeId(policyNode.name, nodeAddress, null)
   evalState.trace.push(id) 
 
   let whitelist = !policyNode.match_check.blacklist

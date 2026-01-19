@@ -1,4 +1,5 @@
-import type { EvaluationState, Policy } from "../types.js";
+import type { Policy } from "../types.js";
+import type { EvaluationState } from "./types.js";
 import { assertLanguageCheck } from "../validator.js";
 
 export function evalLanguage({
@@ -11,8 +12,8 @@ export function evalLanguage({
   text,
   imageUrl,
   history,
-  models,
-  apiKeys,
+  // models,
+  // apiKeys,
 }: {
   evalState: EvaluationState;
   policyNode: Policy;
