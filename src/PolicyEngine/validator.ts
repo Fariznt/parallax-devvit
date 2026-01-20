@@ -163,7 +163,7 @@ export function assertSafetyCheck(node: Record<string, unknown>, path: string): 
 export function assertSemanticCheck(node: Record<string, unknown>, path: string): asserts node is SemanticCheckNode {
 	const v = node.semantic_check;
 	assertObject(v, `${path}.semantic_check`);
-	assertString(v.instruction, `${path}.semantic_check.condition`);
+	assertString(v.condition, `${path}.semantic_check.condition`);
 	if (v.next_check) {
 		err(`${path}.next_check`, 
 			`Semantic checks must be the last check in any sequence where they are used.

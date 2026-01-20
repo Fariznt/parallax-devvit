@@ -56,5 +56,24 @@
       "blacklist": true,
       "flags": "g"
     }
+  },
+  "semantic_simple": {
+    "semantic_check": {
+      "condition": "does not mention bananas"
+    }
+  },
+
+  "semantic_debate": {
+    "semantic_check": {
+      "condition": "Does not attempt explicitly initiate argument/debate; Does not engage in debate/argument, which is defined as responding to a disagreement with rebuttal; May engage in initial disagreement."
+    }
+  },
+
+  "semantic_religious": {
+    "not": {
+      "semantic_check": {
+        "condition": "Promotes normalizes, or trivializes beliefs or actions that contradict doctrines of the Catholic Church as articulated in the Catechism, Sacred Scripture, and Sacred Tradition"
+      }
+    }
   }
 }

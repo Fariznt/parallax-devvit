@@ -1,20 +1,10 @@
-remove credentials from evluators since that will happen through engine more directly to batch
-redefine deferredcheck to include some sort of model identifier (same key as registry?)
-    go with one llm model per now but architecturally, multiple should be supported
-    figure out how to balance these concerns
 
-do llm evaluation definition (basic)
-maybe build in openai + gemini support? or something
-
-go over changes to main
-for language and safety nodes need to define schema for apikey input
-organize future tasks
-registry validation
-persistent storage of action information: full logging, modmails?
-make sure policy changing workflow makes sense (dont want to be using old policy, want maximum ease)
+test semantic node
+adjust main.ts + modmail integration
+reddit dev testing
 add function header comments
+publish
 
-routing reports?
 
 Future
 0. catch errors in main.ts, log, and dont take action
@@ -23,6 +13,7 @@ Future
 3. check compatibility with other apis
 4. consider migration to web-style when functional (high priority due to resume significance)
     allows UI for policy definition + UI action into reddit's interface for mods (ex. get trace) + webdev credibility
+    + trace visibility
 5. wrapping this is fundamental https://platform.openai.com/docs/guides/moderation?utm_source=chatgpt.com
 6. incorporate use of post history
 7. validate only one check per level (rn takes the cheapest one)
@@ -30,6 +21,9 @@ Future
     more than one semantic node in any_of block is invalid. enforce through validation
     input threads need identifiers
     any of leaves downstream violations which may be interdependent
+    -semantic node has not been stress tested for a reasonable limit on semantic nodes per policy
+    (how much can one prompt handle) and it would be difficult/unreasonable to do so (theres always a stronger model,
+    and the splitting depends on use case/semantic complexity) (a framework to help users do this would be nice in the future)
 9. make address exist with line breaks
 10. change whitelist blacklist to allow and deny
 11. abstract away violation and nodeid init
@@ -47,21 +41,13 @@ Future
   }
 16. consider capping deferred checks such that past a threshold its split
 and/or more evaluation modes like cross-content batching, 0 batching
+17. support for how hard to think and maybe some sort of modding history testing pipeline
 
 notes for me:
 devvit settings set apiKey for setting apiKey
 everything else set in mod tools
 severity will be the closest upstream severity defined
 
-
-
-policy traversal will be like this:
-
-how about the traversal only produces a trace object with various info in it.
- one info is whether violation has occured (yet), other is what llm calls to queue. 
- if there are calls to queue, we use them and change the violation has occurred thing 
- if needed. once trace is done being generated, we extract the violation / no violation
-  and return that along with the entire trace
 
 figure out what im going to do in terms of tree representation. if decide against batch processing need to indicate in my architecture files
     these architectural decisions depend on the role this plays in the larger system
@@ -79,10 +65,4 @@ figure out what im going to do in terms of tree representation. if decide agains
         how can i deploy an automoderator 2nd phase version without writing much extra code that would be directly used in the final version?
             final version needs to be able to interact with modmail anyweayws and actually simply modmail event read + archive probably not too complicated, if feasible.
             i should rush early approval. then slowly work on building a proper engine that can be used elsewhere
-
-theres a contention between having NOT and having deferred checks
-    unless i can flip the semantic..... which is awkward
-theres also awkwardness with deferred checks + not
-    negate the interpretation of the deferred result
-
 

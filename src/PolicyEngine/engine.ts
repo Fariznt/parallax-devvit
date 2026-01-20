@@ -17,6 +17,9 @@ import {
 import { nodeEvaluators, getDispatchKey, doDeferredChecks } from "./handlers/index.js"; 
 import { assertPolicy } from "./validator.js";
 import { normalize } from "./normalizer.js";
+import { json } from "stream/consumers";
+
+const debug = true
 
 /**
  * TODO
@@ -125,7 +128,9 @@ export class PolicyEngine {
 			// construct address of childNode from parentAddress as `${parentAddress}/${nodeLabel(node)}`
 			// or policy/nodeLabel(node) for root
 			const nodeLabel = (policyNode: Policy): string => {
-				if (typeof policyNode.name === "string" && policyNode.name.length > 0) return policyNode.name;
+				if (typeof policyNode.name === "string" && policyNode.name.length > 0) {
+					return policyNode.name;
+				}
 				const key = (Object.keys(nodeEvaluators) as string[]).find(k => k in policyNode);
 				if (key) return key;
 				return "policy";
@@ -183,14 +188,22 @@ export class PolicyEngine {
 				throw new Error("Policy has semantic checks, but model or api key is not defined.")
 			}
 		} else {
-			doDeferredChecks(
-					evalState, contextList, text, this.model.baseUrl, this.model.modelName, apiKey)
+			if (evalState.deferredChecks.length > 0) {
+				await doDeferredChecks(
+						evalState, contextList, text, this.model.baseUrl, this.model.modelName, apiKey)
+			}
+
 		}
 
-		// TODO: build evaluation result. consider returning simply evaluatoin state
-		// but if not, do evaluationstate + 100 char label + violation boolean
-		
-		//buildLabel(evalState)
+		if (debug) {
+			for (const v of evalState.violations) {
+				console.log(
+					`${v.node.display_name ?? "unnamed"}, ${v.node.type} Violation explanation:
+					${v.explanation}`
+				)
+			}
+		}
+
 
 		const evalResult: EvaluationResult = {
 			violations: evalState.violations,
