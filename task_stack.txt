@@ -1,4 +1,5 @@
 
+try without redditapi enabled
 test removal/modmail integration
 (keep ban-related code in my gitignore for now (move it) + ask about it in request if possible)
 
@@ -19,6 +20,7 @@ Future
     allows UI for policy definition + UI action into reddit's interface for mods (ex. get trace) + webdev credibility
     + trace visibility
 5. wrapping this is fundamental https://platform.openai.com/docs/guides/moderation?utm_source=chatgpt.com
+    (MUST CHANGE TOS ACCORINDGLY)
 6. incorporate use of post history
 7. validate only one check per level (rn takes the cheapest one)
 8. hella documentation

@@ -14,7 +14,6 @@ import type { SeverityActionMap, ContentInfo } from "./types.js";
 
 Devvit.configure({
   redditAPI: true,
-  redis: true,
   http: true,
 });
 
@@ -181,11 +180,12 @@ Devvit.addTrigger({
     console.log('Evaluation result:', result);
 
     const commentInfo: ContentInfo = {
-      username: event.comment?.author ?? "Unknown"
-      id: event.comment?.id,
-      
+      username: event.author?.name ?? null,
+      id: event.comment?.id ?? null,
+      text: text,
+      link: event.comment?.permalink ?? null,
+      type: "comment"
     }
-
     resultApply(result, commentInfo, context);
   },
 });
@@ -227,6 +227,13 @@ Devvit.addTrigger({
     });
     console.log('Evaluation result:', result);
 
+    const postInfo: ContentInfo = {
+      username: event.author?.name ?? null,
+      id: event.post?.id ?? null,
+      text: text,
+      link: event.post?.permalink ?? null,
+      type: "post"
+    }
     resultApply(result, postInfo, context);
   },
 });
