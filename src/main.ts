@@ -137,7 +137,7 @@ async function resultApply(
 
   if (!actionMap || !maxSeverity) { 
     // no severity map provided, or no severity in violated nodes, default to modmail
-    actionFunctions["modmail"]()
+    actionFunctions["modmail"](result, contentId, context)
   } else {
     const actions: string[] = actionMap[maxSeverity]
     if (!(maxSeverity in actionMap)) {
