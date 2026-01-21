@@ -1,27 +1,40 @@
 import { EvaluationResult } from "./PolicyEngine/handlers/types.js";
 import { TriggerContext } from "@devvit/public-api";
-
-/**
- * Performs a Reddit action based on result from policy engine
- */
-export type ActionFunction = (
-  result: EvaluationResult,
-  contentId: string,
-  context: TriggerContext
-) => Promise<void>;
+import { ContentInfo, ActionFunction } from "./types.js"
 
 
 const sendModmail: ActionFunction = async (
   result,
-  contentId,
+  content,
   context
 ) => {
-  // TODO: implement modmail send
+  // Edge case handling---Devvit events don't guarantee these
+  if (!content.username) {
+    content.username = "unknown user"
+  }
+  if (!content.link) {
+    content.link = "<link could not be obtained>"
+  }
+
+  const subject: string = 
+    `Review ${content.type} for ${result.violations.length} potential rule violation(s)`
+  let body: string = 
+    `Review the following ${content.type} by ${content.username}:\n ${content.link}\n`
+  for (const v of result.violations) {
+    const severityStr = `${v.severity ? ` (of severity ${v.severity})`: ""}`
+    body += `Violation of ${v.node.display_name ?? v.node.type}${severityStr}:\n${v.explanation}\n`
+  }
+  await context.reddit.modMail.createConversation({
+    body: body,
+    subredditName: context.subredditName!,
+    subject: subject,
+    to: null // i.e. internal moderator conversation
+  });
 };
 
 const sendModqueue: ActionFunction = async (
   result,
-  contentId,
+  content,
   context
 ) => {
   // TODO: implement modqueue report
@@ -29,15 +42,25 @@ const sendModqueue: ActionFunction = async (
 
 const remove: ActionFunction = async (
   result,
-  contentId,
+  content,
   context
 ) => {
-  // TODO: implement content removal
+  if (!content.id) {
+    console.warn("content id null, falling back to modmail")
+    sendModmail(result, content, context)
+  } else {
+    await context.reddit.remove(content.id, false);
+    await context.reddit.addRemovalNote({
+      itemIds: [content.id], 
+      reasonId: "", // empty for now---may extract from trace in future
+      modNote: result.modNote
+    });
+  }
 };
 
 const ban: ActionFunction = async (
   result,
-  contentId,
+  content,
   context
 ) => {
   // TODO: implement ban (perma or temp handled internally)

@@ -5,12 +5,12 @@ import {
   loadEarlyExitFromSettings, 
   loadKeyFromSettings, 
   loadPolicyFromSettings, 
-  SeverityActionMap
 } from "./settings-loader.js";
 import { actionFunctions } from "./action-functions.js";
 import type { TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
 import type { EvaluationResult, Violation } from "./PolicyEngine/handlers/types.js";
 import type { ModelConfig } from "./PolicyEngine/types.js"
+import type { SeverityActionMap, ContentInfo } from "./types.js";
 
 Devvit.configure({
   redditAPI: true,
@@ -121,7 +121,9 @@ async function getThread(
  * @param context 
  */
 async function resultApply(
-  result: EvaluationResult, contentId: string, context: TriggerContext
+  result: EvaluationResult, 
+  contentInfo: ContentInfo, 
+  context: TriggerContext
 ): Promise<void> {
   let action: string; 
   let maxSeverity: number | null = null;
@@ -137,7 +139,7 @@ async function resultApply(
 
   if (!actionMap || !maxSeverity) { 
     // no severity map provided, or no severity in violated nodes, default to modmail
-    actionFunctions["modmail"](result, contentId, context)
+    actionFunctions["modmail"](result, contentInfo, context)
   } else {
     const actions: string[] = actionMap[maxSeverity]
     if (!(maxSeverity in actionMap)) {
@@ -146,7 +148,7 @@ async function resultApply(
     } else {
       // apply the function corresponding to each action
       for (const a of actions) {
-        actionFunctions[a](result, contentId, context)
+        actionFunctions[a](result, contentInfo, context)
       }
     }
   }
@@ -160,18 +162,13 @@ Devvit.addTrigger({
   // Fires for new comments, including replies.
   event: "CommentCreate", // TODO: include posts
   onEvent: async (event: TriggerEventType["CommentCreate"], context) => {
-
     console.log('CommentCreate event triggered');
 
     const comment = event.comment;
     const text = comment?.body ?? "";
     if (!comment || !text) return;
-
     const commentThread: string[] = await getThread(context, comment);
-    console.log('commentThread:', commentThread)
-
-    console.log("Evaluation text:" + text);
-
+    
     const apiKey = await loadKeyFromSettings(context);
     const engine = await getEngine(context);
     const earlyExit = await loadEarlyExitFromSettings(context);
@@ -182,7 +179,14 @@ Devvit.addTrigger({
       doEarlyExit: earlyExit
     });
     console.log('Evaluation result:', result);
-    resultApply(result, comment.id, context);
+
+    const commentInfo: ContentInfo = {
+      username: event.comment?.author ?? "Unknown"
+      id: event.comment?.id,
+      
+    }
+
+    resultApply(result, commentInfo, context);
   },
 });
 
@@ -202,6 +206,7 @@ Devvit.addTrigger({
       console.warn("PostCreate fired without post payload");
       return;
     }
+
     const body = post.body ? post.body.trim() : "No Body";
     const title = post.title.trim();
     const text =
@@ -209,9 +214,7 @@ Devvit.addTrigger({
       `POST BODY:\n${body}`;
 
     const enrichedThumbnail = await post.getEnrichedThumbnail();
-    const imgLink = enrichedThumbnail?.image.url ?? null; 
-
-    console.log("Evaluation text:", text);
+    const imgLink = enrichedThumbnail?.image.url ?? null;
 
     const apiKey = await loadKeyFromSettings(context);
     const engine = await getEngine(context);
@@ -224,7 +227,7 @@ Devvit.addTrigger({
     });
     console.log('Evaluation result:', result);
 
-    resultApply(result, post.id, context);
+    resultApply(result, postInfo, context);
   },
 });
 
