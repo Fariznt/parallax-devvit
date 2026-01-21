@@ -1,9 +1,11 @@
 
-test semantic node
-adjust main.ts + modmail integration
+test semantic node (can wait, tbh)
+adjust main.ts + modmail integration (priority)
+  default to modmail with no severity defined
 reddit dev testing
 add function header comments
 publish
+UI/web migration is a priority
 
 
 Future
@@ -42,6 +44,14 @@ Future
 16. consider capping deferred checks such that past a threshold its split
 and/or more evaluation modes like cross-content batching, 0 batching
 17. support for how hard to think and maybe some sort of modding history testing pipeline
+18. llm throttling
+19. use menuitem as on/off button
+20. custom number of days banned
+
+gassing up the project for resume. things i dont want to forget:
+-Tested for context awareness (thread history)
+-Tested for resistance against prompt injection
+-Can represent any boolean expression over modular predicates
 
 notes for me:
 devvit settings set apiKey for setting apiKey
@@ -66,3 +76,24 @@ figure out what im going to do in terms of tree representation. if decide agains
             final version needs to be able to interact with modmail anyweayws and actually simply modmail event read + archive probably not too complicated, if feasible.
             i should rush early approval. then slowly work on building a proper engine that can be used elsewhere
 
+reusable code:
+
+For allowing custom number of days:
+    //   // if not a known/configured action (ACTIONS or ban:<number>)
+    //   if (!ACTIONS.has(action) && !(/^ban:\d+$/.test(action))) {
+    //     throw new Error(
+    //       `Invalid action "${action}" for severity "${rawKey}". ` +
+    //       `Allowed actions: ${Array.from(ACTIONS).join(', ')}, ban:<number of days>`
+    //     );
+    //   }
+for removal
+  // if (result.violation) {
+  //   if (result.violation)
+  //   await context.reddit.remove(contentId, false);
+  //   await context.reddit.addRemovalNote({
+  //     itemIds: [contentId], 
+  //     reasonId: "", // empty for now---may extract from trace in future
+  //     modNote: result.modNote
+  //   });
+  //   // alert modmail as needed
+  // }

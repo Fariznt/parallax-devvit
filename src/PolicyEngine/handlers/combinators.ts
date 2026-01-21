@@ -13,7 +13,7 @@ import type {
 import {
   addToTrace,
 } from "./utils.js"
-import { assertAnyOf, assertAllOf, assertNot } from "../validator.js";
+import { assertAnyOf, assertAllOf, assertNot } from "../policy-validator.js";
 
 /**
  * Evaluates a list of nodes from an any_of or all_of node and runs evalNode

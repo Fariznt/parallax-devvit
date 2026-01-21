@@ -1,6 +1,6 @@
 import type { Policy } from "../types.js";
 import type { EvaluationState } from "./types.js";
-import { assertLanguageCheck } from "../validator.js";
+import { assertLanguageCheck } from "../policy-validator.js";
 
 export function evalLanguage({
   evalState,

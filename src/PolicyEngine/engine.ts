@@ -15,7 +15,7 @@ import {
 	EvaluationState,
 } from "./handlers/types.js"
 import { nodeEvaluators, getDispatchKey, doDeferredChecks } from "./handlers/index.js"; 
-import { assertPolicy } from "./validator.js";
+import { assertPolicy } from "./policy-validator.js";
 import { normalize } from "./normalizer.js";
 import { json } from "stream/consumers";
 
@@ -31,18 +31,18 @@ export class PolicyEngine {
 
 	/**
 	 * TODO
-	 * @param policyJson 
+	 * @param policy 
 	 * @param model 
 	 * @param noteMax 
 	 */
   constructor(
-    policyJson: Record<string, unknown>,
+		policy: Record<string, unknown>,
 		model?: ModelConfig,
 		noteMax: number = 100
   ) {
-		assertPolicy(policyJson)
-		normalize(policyJson)
-		this.policyRoot = policyJson as Policy
+		assertPolicy(policy)
+		normalize(policy)
+		this.policyRoot = policy as Policy
 		if (model 
 			&& typeof model.baseUrl === "string"
 			&& typeof model.modelName === "string"

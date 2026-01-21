@@ -3,7 +3,7 @@ import type { EvaluationState, EvalRouter, NodeTrace, DeferredCheck, Violation }
 import {
   addToTrace,
 } from "./utils.js"
-import { assertSemanticCheck } from "../validator.js";
+import { assertSemanticCheck } from "../policy-validator.js";
 
 export function evalSemantic({
   evalState,

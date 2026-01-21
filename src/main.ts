@@ -1,9 +1,22 @@
 import { Devvit, ModNote } from "@devvit/public-api";
-import type { TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
 import { PolicyEngine }  from "./PolicyEngine/engine.js";
-import type { EvaluationResult } from "./PolicyEngine/types.js";
-import { parseYamlSubset } from "./PolicyEngine/yaml_parser.js"; // temp
-import { assertPolicy } from "./PolicyEngine/validator.js";
+import { 
+  loadActionMapFromSettings, 
+  loadEarlyExitFromSettings, 
+  loadKeyFromSettings, 
+  loadPolicyFromSettings, 
+  SeverityActionMap
+} from "./settings-loader.js";
+import { actionFunctions } from "./action-functions.js";
+import type { TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
+import type { EvaluationResult, Violation } from "./PolicyEngine/handlers/types.js";
+import type { ModelConfig } from "./PolicyEngine/types.js"
+
+Devvit.configure({
+  redditAPI: true,
+  redis: true,
+  http: true,
+});
 
 Devvit.addSettings([
   {
@@ -13,11 +26,17 @@ Devvit.addSettings([
     scope: 'app',
     isSecret: true,
   },
-  { // TODO dont forget to validate JSON; context.setings...
+  {
     name: 'policyJson',
-    label: 'Policy File (JSON)',
+    label: 'Policy Definition',
     type: 'paragraph',
     scope: 'installation', 
+  },
+  {
+    name: 'actionJson',
+    label: 'Action List by Severity',
+    type: 'paragraph',
+    scope: 'installation'
   },
   {
     name: 'llmURL',
@@ -33,40 +52,14 @@ Devvit.addSettings([
     defaultValue: 'gpt-3.5-turbo',
   },
   {
-    name: 'policyYaml',
-    label: 'Policy File (YAML)',
-    type: 'paragraph',
+    name: 'earlyExit',
+    label: `Early Exiting / Short-Circuiting in 'all_of'`,
+    type: 'string',
     scope: 'installation'
   }
 ]);
 
-Devvit.configure({
-  redditAPI: true,
-  redis: true,
-  http: true,
-});
-
-
-
-type JsonObject = Record<string, unknown>;
-
 let engine: PolicyEngine | undefined;
-
-async function loadPolicyFromSettings(context: TriggerContext): Promise<JsonObject> {
-  const raw = await context.settings.get("policyJson");
-  if (typeof raw !== "string" || raw.length === 0) {
-    throw new Error('Setting "PolicyJson" must be a non-empty string');
-  }
-
-  let parsed: JsonObject;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`"PolicyJson" is not valid JSON.`);
-  }
-
-  return parsed;
-}
 
 /**
  * Wrapper around PolicyEngine constructor for skipping repeated instantiation (minor optimization)
@@ -75,7 +68,7 @@ async function loadPolicyFromSettings(context: TriggerContext): Promise<JsonObje
  */
 async function getEngine(context: TriggerContext): Promise<PolicyEngine> {
   if (!engine) {
-    const policyJson: JsonObject = await loadPolicyFromSettings(context);
+    const policyJson: Record<string, unknown> = await loadPolicyFromSettings(context);
 
     const modelName = await context.settings.get("llmName");
     if (typeof modelName !== "string" || modelName.length === 0) {
@@ -88,25 +81,23 @@ async function getEngine(context: TriggerContext): Promise<PolicyEngine> {
     }
     const baseUrl = baseUrlRaw.replace(/\/+$/, "");
 
+    const config: ModelConfig = {
+      modelName: modelName,
+      baseUrl: baseUrl
+    }
     engine = new PolicyEngine({
-      policyJson,
-      modelName,
-      baseUrl,
+      policy: policyJson,
+      model: config,
+      noteMax: 100,
     });
   }
   return engine;
 }
 
-async function getKey(context: TriggerContext): Promise<string> {
-  const apiKey = await context.settings.get("apiKey");
-  if (typeof apiKey !== "string" || apiKey.length === 0) {
-    throw new Error('Setting "apiKey" must be a non-empty string');
-  }
-  return apiKey;
-}
-
 // TODO warning, comment type might cause issues later. test thoroughly.
-async function getThread(context: TriggerContext, comment: { id: string; parentId?: string }): Promise<string[]> {
+async function getThread(
+  context: TriggerContext, comment: { id: string; parentId?: string }
+): Promise<string[]> {
   let current = comment;
   const chain = [];
 
@@ -122,18 +113,49 @@ async function getThread(context: TriggerContext, comment: { id: string; parentI
   return chain.reverse();
 }
 
-async function resultApply(result: EvaluationResult, contentId: string, context: TriggerContext): Promise<void> {
-  if (result.violation) {
-    await context.reddit.remove(contentId, false);
-    await context.reddit.addRemovalNote({
-      itemIds: [contentId], 
-      reasonId: "", // empty for now---may extract from trace in future
-      modNote: result.modNote
-    });
-    // alert modmail as needed
+/**
+ * Takes the EvaluationResult from a PolicyEngine computation and applies the correct actions
+ * based on settings.
+ * @param result 
+ * @param contentId 
+ * @param context 
+ */
+async function resultApply(
+  result: EvaluationResult, contentId: string, context: TriggerContext
+): Promise<void> {
+  let action: string; 
+  let maxSeverity: number | null = null;
+  const actionMap: SeverityActionMap | null = await loadActionMapFromSettings(context)
+
+  // set max severity as the highest severity among violations
+  for (const v of result.violations) {
+    if (v.severity == null) continue;
+    if (maxSeverity == null || v.severity > maxSeverity) {
+      maxSeverity = v.severity;
+    }
+  }
+
+  if (!actionMap || !maxSeverity) { 
+    // no severity map provided, or no severity in violated nodes, default to modmail
+    actionFunctions["modmail"]()
+  } else {
+    const actions: string[] = actionMap[maxSeverity]
+    if (!(maxSeverity in actionMap)) {
+      throw new Error(
+        `A severity level defined in a violated Policy does not exist in actionMap`)
+    } else {
+      // apply the function corresponding to each action
+      for (const a of actions) {
+        actionFunctions[a](result, contentId, context)
+      }
+    }
   }
 }
 
+/**
+ * Event listener for user comments. Uses PolicyEngine to do an evaluation and applies
+ * relevant actions.
+ */
 Devvit.addTrigger({
   // Fires for new comments, including replies.
   event: "CommentCreate", // TODO: include posts
@@ -150,14 +172,25 @@ Devvit.addTrigger({
 
     console.log("Evaluation text:" + text);
 
-    const apiKey = await getKey(context);
+    const apiKey = await loadKeyFromSettings(context);
     const engine = await getEngine(context);
-    const result = await engine.evaluate({ text: text, history: commentThread, apiKey: apiKey, doEarlyExit: false });
+    const earlyExit = await loadEarlyExitFromSettings(context);
+    const result: EvaluationResult = await engine.evaluate({
+      text: text, 
+      contextList: commentThread, 
+      apiKey: apiKey, 
+      doEarlyExit: earlyExit
+    });
     console.log('Evaluation result:', result);
     resultApply(result, comment.id, context);
   },
 });
 
+
+/**
+ * Event listener for user posts. Uses PolicyEngine to do an evaluation and applies
+ * relevant actions.
+ */
 Devvit.addTrigger({
   // Fires for newly created posts.
   event: "PostCreate",
@@ -180,13 +213,45 @@ Devvit.addTrigger({
 
     console.log("Evaluation text:", text);
 
-    const apiKey = await getKey(context);
+    const apiKey = await loadKeyFromSettings(context);
     const engine = await getEngine(context);
-    const result = await engine.evaluate({ text: text, imageUrl: imgLink, history: null, apiKey: apiKey });
+    const earlyExit = await loadEarlyExitFromSettings(context)
+    const result: EvaluationResult = await engine.evaluate({
+      text: text, 
+      imageUrl: imgLink,
+      apiKey: apiKey, 
+      doEarlyExit: earlyExit
+    });
     console.log('Evaluation result:', result);
 
     resultApply(result, post.id, context);
   },
 });
+
+// /**
+//  * Event listener for testing units of code during development
+//  */
+// Devvit.addMenuItem({
+//   location: 'subreddit',
+//   label: 'Run PolicyAgent Test',
+//   forUserType: 'moderator',
+//   onPress: async (event, context) => {
+//     const subredditName = context.subredditName;
+
+//     console.log(`PolicyAgent test triggered on r/${subredditName}`);
+
+//     if (subredditName) {
+//       // Example: fetch wiki policy
+//       const wiki = await context.reddit.getWikiPage(
+//         subredditName,
+//         'index'
+//       );
+//       console.log(wiki.content); 
+//     } else {
+//       console.log("subredditname undefined")
+//     }
+ 
+//   },
+// });
 
 export default Devvit;

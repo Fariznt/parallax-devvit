@@ -65,8 +65,8 @@ function assertNumber(x: unknown, path: string): asserts x is number {
 }
 
 function assertSeverity(x: unknown, path: string): asserts x is number {
-	if (typeof x !== "number" && typeof x !== "string") {
-		err(path, "expected number or string");
+	if (typeof x !== "number") {
+		err(path, "expected number");
 	}
 }
 

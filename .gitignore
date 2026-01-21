@@ -1,3 +1,4 @@
 node_modules
 task_stack.txt
 example.yaml
+.env

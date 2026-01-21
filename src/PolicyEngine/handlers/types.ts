@@ -1,4 +1,4 @@
-import { Policy, Severity } from "../types.js";
+import { Policy } from "../types.js";
 
 // ===Definitions for policy evaluation process===
 
@@ -51,7 +51,7 @@ export type EvaluationState = {
 export type DeferredCheck = {
 	condition: string;
 	negate: boolean; // flipped by a NOT node
-  severity?: Severity;
+  severity?: number;
   nodeTrace: NodeTrace;
 }
 
@@ -78,7 +78,7 @@ export type Violation = {
 	node: NodeTrace;
 	explanation: string;
 	// optional severity score, if applicable (useful for fully autonomous moderation w/ isComprehensive off)
-	severity?: Severity; 
+	severity?: number; 
 }
 
 // The object received by the worker or event handler using PolicyEngine

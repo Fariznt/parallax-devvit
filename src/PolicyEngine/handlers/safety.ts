@@ -3,7 +3,7 @@ import type {
   EvaluationState, 
   EvalRouter,
 } from "./types.js";
-import { assertSafetyCheck } from "../validator.js";
+import { assertSafetyCheck } from "../policy-validator.js";
 
 export function evalSafety({
   evalState,

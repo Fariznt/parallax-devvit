@@ -8,7 +8,7 @@ import type {
   EvaluationState, 
   EvalRouter,
 } from "./types.js";
-import { assertMatchCheck } from "../validator.js";
+import { assertMatchCheck } from "../policy-validator.js";
 
 function evalPatterns(patterns: string[], flags: string, text: string): {
   matchMask: boolean[];
@@ -77,7 +77,6 @@ export function evalMatch({
   text: string;
 }): void {
   assertMatchCheck(policyNode, nodeAddress)
-  console.log("running match with negate = " + negate)
 
   const id: NodeTrace = getNodeId(policyNode.name, nodeAddress, null)
   evalState.trace.push(id) 
