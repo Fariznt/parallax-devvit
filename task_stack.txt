@@ -1,10 +1,12 @@
 
-test semantic node (can wait, tbh)
-adjust main.ts + modmail integration (priority)
-  default to modmail with no severity defined
+test removal/modmail integration
+(keep ban-related code in my gitignore for now (move it) + ask about it in request if possible)
+
 reddit dev testing
-add function header comments
-publish
+
+add some  function header comments
+
+publish ASAP
 UI/web migration is a priority
 
 
@@ -97,3 +99,23 @@ for removal
   //   });
   //   // alert modmail as needed
   // }
+
+  religious test
+  /**
+ * Runs a complex/nuanced example of a semantic node with
+ * culturally sensitive condition (best use case of semantic node)
+ * that a community may have chosen to govern content by. This example
+ * tests knowledge-based evaluation---the LLM must know what constitutes
+ * this belief system, not just read meaning.
+ * 
+ * Promotes normalizes, or trivializes beliefs or actions that contradict
+ * doctrines of the Catholic Church as articulated in the Catechism,
+ * Sacred Scripture, and Sacred Tradition
+ * 
+ * Wrapped in not node to violate for content meeting the above condition.
+ * 
+ * Returns true upon violation.
+ */
+async function semantic_religious(text: string): Promise<boolean> {
+  return policyViolates(policies.semantic_simple, text)
+}
