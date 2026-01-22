@@ -2,7 +2,6 @@ import { EvaluationResult } from "./PolicyEngine/handlers/types.js";
 import { TriggerContext } from "@devvit/public-api";
 import { ContentInfo, ActionFunction } from "./types.js"
 
-
 const sendModmail: ActionFunction = async (
   result,
   content,
@@ -19,11 +18,12 @@ const sendModmail: ActionFunction = async (
   const subject: string = 
     `Review ${content.type} for ${result.violations.length} potential rule violation(s)`
   let body: string = 
-    `Review the following ${content.type} by ${content.username}:\n ${content.link}\n`
+    `Review the following ${content.type} by u/${content.username}:\n ${content.link}\n`
   for (const v of result.violations) {
     const severityStr = `${v.severity ? ` (of severity ${v.severity})`: ""}`
     body += `Violation of ${v.node.display_name ?? v.node.type}${severityStr}:\n${v.explanation}\n`
   }
+  console.log(body)
   await context.reddit.modMail.createConversation({
     body: body,
     subredditName: context.subredditName!,

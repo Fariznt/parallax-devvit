@@ -134,7 +134,7 @@ async function resultApply(
 
   if (!actionMap || !maxSeverity) { 
     // no severity map provided, or no severity in violated nodes, default to modmail
-    actionFunctions["modmail"](result, contentInfo, context)
+    actionFunctions["sendModmail"](result, contentInfo, context)
   } else {
     const actions: string[] = actionMap[maxSeverity]
     if (!(maxSeverity in actionMap)) {
@@ -173,6 +173,12 @@ async function safeEvaluate(
       apiKey: apiKey, 
       doEarlyExit: doEarlyExit
     });
+    console.log("Content safely evaluated.")
+    for (const v of result.violations) {
+      console.log(`${v.node.display_name ?? "unnamed"}, ${v.node.type} Violation explanation:
+        ${v.explanation}`
+      )
+    }
     return result;
   } catch (err: unknown) {
     // In case of failure, send informative error to modmail
@@ -183,12 +189,12 @@ async function safeEvaluate(
     } else if (typeof err === "string") {
       message = err;
     }
-    console.log(`Errored during content evaluation:\n ${message}`)
+    console.log(`Error during policy validation or content evaluation:\n ${message}`)
     await context.reddit.modMail.createConversation({
       body: 
       `An error occurred trying to evaluate the ${contentInfo.type} at:\n${contentInfo.link}
       \nIf settings were recently changed, this could be a syntax error in your policy definition.
-      \nIf the error seems unrelated, contact parallax.moderator@gmail.com.
+      \nIf the error seems unexpected, contact parallax.moderator@gmail.com.
       \nError: ${message}`,
       subredditName: context.subredditName!,
       subject: "Policy-Agent Error",

@@ -20,8 +20,6 @@ import { assertPolicy } from "./policy-validator.js";
 import { normalize } from "./normalizer.js";
 import { json } from "stream/consumers";
 
-const debug = true
-
 /**
  * TODO
  */
@@ -183,14 +181,6 @@ export class PolicyEngine {
 						evalState, contextList, text, this.model.baseUrl, this.model.modelName, apiKey)
 			}
 
-		}
-
-		if (debug) {
-			for (const v of evalState.violations) {
-				console.log(`${v.node.display_name ?? "unnamed"}, ${v.node.type} Violation explanation:
-					${v.explanation}`
-				)
-			}
 		}
 
 		const evalResult: EvaluationResult = {
