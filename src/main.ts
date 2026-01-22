@@ -153,6 +153,54 @@ async function resultApply(
   }
 }
 
+async function safeEvaluate(
+  {
+    context,
+    contentInfo, 
+    contextList, 
+    apiKey, 
+    doEarlyExit  
+  }: {
+    context: TriggerContext,
+    contentInfo: ContentInfo, 
+    contextList?: string[], 
+    apiKey: string, 
+    doEarlyExit: boolean 
+  }
+): Promise<EvaluationResult | null> {
+  try {
+    const engine = await getEngine(context);
+    const result: EvaluationResult = await engine.evaluate({
+      text: contentInfo.text, 
+      imageUrl: contentInfo.imgUrl,
+      contextList: contextList, 
+      apiKey: apiKey, 
+      doEarlyExit: doEarlyExit
+    });
+    return result;
+  } catch (err: unknown) {
+    // In case of failure, send informative error to modmail
+    let message = "Unknown error";
+
+    if (err instanceof Error) {
+      message = err.message;
+    } else if (typeof err === "string") {
+      message = err;
+    }
+    console.log(`Errored during content evaluation:\n ${message}`)
+    await context.reddit.modMail.createConversation({
+      body: 
+      `An error occurred trying to evaluate the ${contentInfo.type} at:\n${contentInfo.link}
+      \nIf settings were recently changed, this could be a syntax error in your policy definition.
+      \nError: ${message}`,
+      subredditName: context.subredditName!,
+      subject: "Policy-Agent Error",
+      to: null // i.e. internal moderator conversation
+    });
+    return null
+  }
+}
+
 /**
  * Event listener for user comments. Uses PolicyEngine to do an evaluation and applies
  * relevant actions.
@@ -167,29 +215,32 @@ Devvit.addTrigger({
     const text = comment?.body ?? "";
     if (!comment || !text) return;
     const commentThread: string[] = await getThread(context, comment);
-    
-    const apiKey = await loadKeyFromSettings(context);
-    const engine = await getEngine(context);
-    const earlyExit = await loadEarlyExitFromSettings(context);
-    const result: EvaluationResult = await engine.evaluate({
-      text: text, 
-      contextList: commentThread, 
-      apiKey: apiKey, 
-      doEarlyExit: earlyExit
-    });
-    console.log('Evaluation result:', result);
 
     const commentInfo: ContentInfo = {
       username: event.author?.name ?? null,
       id: event.comment?.id ?? null,
       text: text,
       link: event.comment?.permalink ?? null,
+      imgUrl: null,
       type: "comment"
     }
-    resultApply(result, commentInfo, context);
+    
+    const apiKey = await loadKeyFromSettings(context);
+    const earlyExit = await loadEarlyExitFromSettings(context);
+
+    const result: EvaluationResult | null = await safeEvaluate({
+      context: context,
+      contentInfo: commentInfo, 
+      contextList: commentThread, 
+      apiKey: apiKey, 
+      doEarlyExit: earlyExit
+    })
+
+    if (result) {
+      resultApply(result, commentInfo, context);
+    }
   },
 });
-
 
 /**
  * Event listener for user posts. Uses PolicyEngine to do an evaluation and applies
@@ -216,25 +267,27 @@ Devvit.addTrigger({
     const enrichedThumbnail = await post.getEnrichedThumbnail();
     const imgLink = enrichedThumbnail?.image.url ?? null;
 
-    const apiKey = await loadKeyFromSettings(context);
-    const engine = await getEngine(context);
-    const earlyExit = await loadEarlyExitFromSettings(context)
-    const result: EvaluationResult = await engine.evaluate({
-      text: text, 
-      imageUrl: imgLink,
-      apiKey: apiKey, 
-      doEarlyExit: earlyExit
-    });
-    console.log('Evaluation result:', result);
-
     const postInfo: ContentInfo = {
       username: event.author?.name ?? null,
       id: event.post?.id ?? null,
       text: text,
       link: event.post?.permalink ?? null,
+      imgUrl: imgLink,
       type: "post"
     }
-    resultApply(result, postInfo, context);
+
+    const apiKey = await loadKeyFromSettings(context);
+    const earlyExit = await loadEarlyExitFromSettings(context)
+    const result: EvaluationResult | null = await safeEvaluate({
+      context: context,
+      contentInfo: postInfo, 
+      apiKey: apiKey, 
+      doEarlyExit: earlyExit
+    })
+
+    if (result) {
+      resultApply(result, postInfo, context);
+    }
   },
 });
 

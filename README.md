@@ -23,6 +23,7 @@ the tool is en route for use on 2 subreddits (6k and 140k+ members) upon approva
 - **Time & cost saving measures (gated evaluation)** – The policy language is defined to enable and promote policies where expensive checks (ex. network calls and especially LLM usage) can be gated behind cheaper checks that first determine whether escalation is necessary. By default, failing of a given check results in escalation to a downstream check. 
 - **Explainable decisions** - All violations determined by the engine come packaged with corresponding explanations tailored to the content being evaluated, and internal execution traces are produced.
 - **Reproducible decisions** - All checks (including those involving LLMs) are ultimately deterministic (temperature = 0), improving policy debuggability. 
+- **Error feedback** - Errors during evaluation are surfaced to modmail. This is most useful for debugging your policy definition (for which the validator provides an address of failure within your policy definition).
 - **Robustness under adversarial input** – Any check that uses LLMs is guarded against prompt injection and has been briefly tested for this capability.
 
 ---

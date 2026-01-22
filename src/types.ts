@@ -1,5 +1,8 @@
+import { EvaluationResult } from "./PolicyEngine/handlers/types.js";
+import { TriggerContext } from "@devvit/public-api";
+
 /**
- * Types related to posts, comments, and action handling
+ * This file has types related to posts, comments, and action handling
  */
 
 /**
@@ -18,5 +21,15 @@ export type ContentInfo = {
   link: string | null;
   type: "comment" | "post";
 };
+
+/**
+ * Type for functions that perform a Reddit action based on result from policy engine
+ */
+export type ActionFunction = (
+  result: EvaluationResult,
+  content: ContentInfo,
+  context: TriggerContext
+) => Promise<void>;
+
 
 

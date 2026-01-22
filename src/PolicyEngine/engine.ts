@@ -204,7 +204,6 @@ export class PolicyEngine {
 			}
 		}
 
-
 		const evalResult: EvaluationResult = {
 			violations: evalState.violations,
 			violation: evalState.violations.length > 0,
@@ -213,7 +212,6 @@ export class PolicyEngine {
 			earlyExit: evalState.earlyExit,
 		};
 			
-		// temp return
 		return evalResult
 	}
 

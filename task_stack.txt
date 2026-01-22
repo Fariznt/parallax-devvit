@@ -51,6 +51,9 @@ and/or more evaluation modes like cross-content batching, 0 batching
 18. llm throttling
 19. use menuitem as on/off button
 20. custom number of days banned
+21. dealing with bogus reports
+22. when custom ui for settings handling, direct errors before erroring on comment
+  rn need post/comment for error information (note this in docs)
 
 gassing up the project for resume. things i dont want to forget:
 -Tested for context awareness (thread history)

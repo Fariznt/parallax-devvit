@@ -1,4 +1,5 @@
-import type {TriggerContext } from "@devvit/public-api";
+import type { TriggerContext } from "@devvit/public-api";
+import type { SeverityActionMap } from "./types.js"
 
 const ACTIONS = new Set([
   'sendModmail',
@@ -6,8 +7,6 @@ const ACTIONS = new Set([
   'remove',
   'ban',
 ]);
-
-export type SeverityActionMap = Record<number, string[]>;
 
 export function validateSeverityActions(parsed: unknown): SeverityActionMap {
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {

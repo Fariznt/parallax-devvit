@@ -10,7 +10,7 @@ export function normalize(policy: Policy) {
  * @param policy 
  * @param inheritedSeverity 
  */
-export function recursiveNorm(policy: Policy, inheritedSeverity?: number | string): void {
+export function recursiveNorm(policy: Policy, inheritedSeverity?: number): void {
     // nodes inherit parent's severity if null
 	const effective = policy.severity ?? inheritedSeverity; // effective severity
 	if (policy.severity == null) policy.severity = effective; 

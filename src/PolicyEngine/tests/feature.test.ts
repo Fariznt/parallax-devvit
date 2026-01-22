@@ -26,7 +26,7 @@ const config: ModelConfig = {
   baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
 }
 // have true only when testing semantic nodes to prevent unnecessarily api requests
-const doSemanticTests = true; 
+const doSemanticTests = false; 
 const consoleLogFailedTests = true
 
 /**
@@ -40,7 +40,7 @@ async function policyViolates(
   const res: EvaluationResult = await e.evaluate({
     text: text,
     apiKey: apiKey,
-    contextList: contextList
+    contextList: contextList,
   });
   return res.violation;
 }
@@ -74,6 +74,21 @@ async function allOf(text: string): Promise<boolean> {
   return policyViolates(policies.all_of_p, text)
 }
 
+/**
+ * Returns length of trace from evaluating all_of combinator that requires
+ * 'a' and 'b' match in the input text (regex whitelist).
+ */
+async function traceLengthAllOf(
+  text: string, doEarlyExit?: boolean
+): Promise<number> {
+  const e = new PolicyEngine(policies.all_of_p, config);
+  const res: EvaluationResult = await e.evaluate({
+    text: text,
+    doEarlyExit: doEarlyExit,
+  });
+  return res.trace.length;
+}
+
 describe('all_of [a,b]', async () => {
   it('passes when both letters present', async () => {
     const result = await allOf('ab');
@@ -94,6 +109,19 @@ describe('all_of [a,b]', async () => {
     const result = await allOf('xyz');
     expect(result).toBe(true);
   });
+
+  it('exits early when earlyExit=true', async () => {
+    const result = await traceLengthAllOf('xyz', true);
+    const earlyExitOccurred = result == 2
+    expect(earlyExitOccurred).toBe(true);
+  });
+
+  it('full computation when earlyExit=false', async () => {
+    const result = await traceLengthAllOf('xyz', false);
+    const earlyExitOccurred = result == 2
+    expect(earlyExitOccurred).toBe(false);
+  });
+
 });
 
 /**
@@ -335,27 +363,9 @@ async function semantic_debate(
   return policyViolates(policies.semantic_debate, text, contextList)
 }
 
-/**
- * Runs a complex/nuanced example of a semantic node with
- * culturally sensitive condition (best use case of semantic node)
- * that a community may have chosen to govern content by. This example
- * tests knowledge-based evaluation---the LLM must know what constitutes
- * this belief system, not just read meaning.
- * 
- * Promotes normalizes, or trivializes beliefs or actions that contradict
- * doctrines of the Catholic Church as articulated in the Catechism,
- * Sacred Scripture, and Sacred Tradition
- * 
- * Wrapped in not node to violate for content meeting the above condition.
- * 
- * Returns true upon violation.
- */
-async function semantic_religious(text: string): Promise<boolean> {
-  return policyViolates(policies.semantic_simple, text)
-}
 if (doSemanticTests) {
 
-    if (false) { // individual switch
+    if (true) { // individual switch
     describe('simple banana semantic', () => {
       it('violates when bananas are directly mentioned', async () => {
         const result = await semantic_simple('bananas');
@@ -440,16 +450,6 @@ if (doSemanticTests) {
       });
     });
   }
-
-  // describe('high complexity religious semantic', () => {
-  //   it('TODO', async () => {
-  //     const result = await regex_bl_g('a---');
-  //     expect(result).toBe(false);
-  //   });
-
-  // });
-
-
 }
 
 
