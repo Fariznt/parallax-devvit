@@ -2,8 +2,9 @@ import { Policy } from "../types.js";
 
 // ===Definitions for policy evaluation process===
 
-export type EvalRouter = (
-    node: Policy, negate: boolean, parentAddress: string
+
+export type EvalRouter = ( // index is for index within any_of or all_of parent node
+    node: Policy, negate: boolean, parentAddress: string, index?: number
 ) => void;
 
 // A function that evaluates some type of individual PolicyNode node (any predicate or combinator)

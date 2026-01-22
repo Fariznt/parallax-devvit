@@ -14,6 +14,7 @@ import {
 	NodeEvaluator,
 	EvaluationState,
 } from "./handlers/types.js"
+import { childAddress } from "./node-addressing.js";
 import { nodeEvaluators, getDispatchKey, doDeferredChecks } from "./handlers/index.js"; 
 import { assertPolicy } from "./policy-validator.js";
 import { normalize } from "./normalizer.js";
@@ -120,23 +121,12 @@ export class PolicyEngine {
 		 * @param node The node with a .next_check that this function will execute
 		 * @param parentAddress The address of parentNode. If not given, node assumed to be root.
 		 */
-		function evalNode(node: Policy, negate: boolean, parentAddress: string): void {
+		function evalNode(node: Policy, negate: boolean, parentAddress: string, index?: number): void {
 			if (!node) {
 				throw new Error("evalNode called on nonexistent node")
 			}
-			
-			// construct address of childNode from parentAddress as `${parentAddress}/${nodeLabel(node)}`
-			// or policy/nodeLabel(node) for root
-			const nodeLabel = (policyNode: Policy): string => {
-				if (typeof policyNode.name === "string" && policyNode.name.length > 0) {
-					return policyNode.name;
-				}
-				const key = (Object.keys(nodeEvaluators) as string[]).find(k => k in policyNode);
-				if (key) return key;
-				return "policy";
-			};
-			const nodeAddress = `${parentAddress}/${nodeLabel(node)}`
-			
+
+			const nodeAddress = childAddress(parentAddress, node, index)
 			const key = getDispatchKey(node);
 			nodeEvaluators[key]({
 				evalState: evalState,
@@ -197,8 +187,7 @@ export class PolicyEngine {
 
 		if (debug) {
 			for (const v of evalState.violations) {
-				console.log(
-					`${v.node.display_name ?? "unnamed"}, ${v.node.type} Violation explanation:
+				console.log(`${v.node.display_name ?? "unnamed"}, ${v.node.type} Violation explanation:
 					${v.explanation}`
 				)
 			}

@@ -84,11 +84,7 @@ async function getEngine(context: TriggerContext): Promise<PolicyEngine> {
       modelName: modelName,
       baseUrl: baseUrl
     }
-    engine = new PolicyEngine({
-      policy: policyJson,
-      model: config,
-      noteMax: 100,
-    });
+    engine = new PolicyEngine(policyJson, config, 100);
   }
   return engine;
 }
@@ -192,6 +188,7 @@ async function safeEvaluate(
       body: 
       `An error occurred trying to evaluate the ${contentInfo.type} at:\n${contentInfo.link}
       \nIf settings were recently changed, this could be a syntax error in your policy definition.
+      \nIf the error seems unrelated, contact parallax.moderator@gmail.com.
       \nError: ${message}`,
       subredditName: context.subredditName!,
       subject: "Policy-Agent Error",

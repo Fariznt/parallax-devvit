@@ -45,16 +45,18 @@ function allHelper({
 	const origViolationCount = origState.violations.length
   let oneFailed = false
 
-	for (const p of nodeList) {
-    evalNode(p, negate, nodeAddress)
-		if (evalState.violations.length > origViolationCount) {
+  for (let i = 0; i < nodeList.length; i++) {
+    const p = nodeList[i]
+    evalNode(p, negate, nodeAddress, i)
+    if (evalState.violations.length > origViolationCount) {
       oneFailed = true
       if (doEarlyExit) {
         evalState.earlyExit = true
         break
       }
-		}
-	}
+    }
+  }
+
 
   // set result in trace
   const newDefChecks = origState.deferredChecks.length != evalState.deferredChecks.length
@@ -85,10 +87,12 @@ function anyHelper({
 }): NodeResult {
   let onePassed = false;
 	const origState: EvaluationState = structuredClone(evalState)
-	for (const p of nodeList) {
+  for (let i = 0; i < nodeList.length; i++) {
+    const p = nodeList[i]
+
     const preBranchViol = structuredClone(evalState.violations)
     const preBranchDef = structuredClone(evalState.deferredChecks)
-    evalNode(p, negate, nodeAddress)
+    evalNode(p, negate, nodeAddress, i)
     const newDeferred = (preBranchDef.length != evalState.deferredChecks.length)
     const newViolation = (evalState.violations.length != preBranchViol.length)
 
