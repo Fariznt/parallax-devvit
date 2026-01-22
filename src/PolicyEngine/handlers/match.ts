@@ -8,6 +8,9 @@ import type {
   EvaluationState, 
   EvalRouter,
 } from "./types.js";
+import {
+  addToTrace,
+} from "./utils.js"
 import { assertMatchCheck } from "../policy-validator.js";
 
 function evalPatterns(patterns: string[], flags: string, text: string): {
@@ -49,18 +52,6 @@ function evalPatterns(patterns: string[], flags: string, text: string): {
   return { matchMask, matchedPatterns, unmatchedPatterns };
 }
 
-function getNodeId(
-  name: string | undefined, nodeAddress: string, result: NodeResult
-): NodeTrace {
-  const id: NodeTrace = {
-    display_name: name,
-    address: nodeAddress,
-    type: "match_check",
-    result: result
-  }
-  return id
-}
-
 export function evalMatch({
   evalState,
   policyNode, 
@@ -78,8 +69,8 @@ export function evalMatch({
 }): void {
   assertMatchCheck(policyNode, nodeAddress)
 
-  const id: NodeTrace = getNodeId(policyNode.name, nodeAddress, null)
-  evalState.trace.push(id) 
+  const nodeTrace: NodeTrace = addToTrace(evalState, policyNode, nodeAddress)
+
 
   let whitelist = !policyNode.match_check.blacklist
   if (negate) { 
@@ -105,7 +96,7 @@ export function evalMatch({
 
   // update evaluation result of this node in trace
   const result = fail ? "fail" : "pass"
-  id.result = result
+  nodeTrace.result = result
 
    // Generate variables for evalState change
   let explanation: string = ""; // Answers "Why did the check fail?"
@@ -115,21 +106,21 @@ export function evalMatch({
       evalNode(policyNode.next_check, negate, nodeAddress)
     } else {
       if (useGlobalSeq && whitelist) {
-        explanation = `The following patterns required failed to match in sequence:
+        explanation = `The following patterns failed to match in sequence:
         ${unmatchedPatterns.map(p => `- ${p}`).join("\n")}`
       } else if (useGlobalSeq && !whitelist) {
-        explanation = `The following disallowed patterns matched in sequence:
+        explanation = `The following patterns matched in sequence:
         ${matchedPatterns.map(p => `- ${p}`).join("\n")}`
       } else if (!useGlobalSeq && whitelist) {
-        explanation = `The following patterns required failed to match:
+        explanation = `The following patterns failed to match:
         ${unmatchedPatterns.map(p => `- ${p}`).join("\n")}`
       } else if (!useGlobalSeq && !whitelist) {
-        explanation = `The following disallowed patterns matched:
+        explanation = `The following patterns matched:
         ${matchedPatterns.map(p => `- ${p}`).join("\n")}`
       }
 
       const newViolation: Violation = {
-        node: id,
+        node: nodeTrace,
         explanation: explanation,
         severity: policyNode.severity
       }

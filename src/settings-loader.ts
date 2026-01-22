@@ -96,8 +96,11 @@ export async function loadPolicyFromSettings(
   let parsed: Record<string, unknown>;
   try {
     parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`"PolicyJson" is not valid JSON.`);
+  } catch (err) {
+    if (err instanceof Error) {
+      throw new Error(`"PolicyJson" is not valid JSON: ${err.message}`);
+    }
+    throw err;
   }
 
   return parsed;

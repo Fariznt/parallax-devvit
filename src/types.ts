@@ -19,6 +19,7 @@ export type ContentInfo = {
   id: string | null;
   text: string;
   link: string | null;
+  imgUrl: string | null;
   type: "comment" | "post";
 };
 

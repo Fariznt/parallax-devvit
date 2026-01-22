@@ -16,7 +16,7 @@ const sendModmail: ActionFunction = async (
   }
 
   const subject: string = 
-    `Review ${content.type} for ${result.violations.length} potential rule violation(s)`
+    `Review ${content.type} for ${result.violations.length} met policy condition(s)`
   let body: string = 
     `Review the following ${content.type} by u/${content.username}:\n ${content.link}\n`
   for (const v of result.violations) {
@@ -44,6 +44,7 @@ const remove: ActionFunction = async (
   content,
   context
 ) => {
+  console.log("removal reached")
   if (!content.id) {
     console.warn("content id null, falling back to modmail")
     sendModmail(result, content, context)

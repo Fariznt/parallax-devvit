@@ -89,7 +89,6 @@ async function getEngine(context: TriggerContext): Promise<PolicyEngine> {
   return engine;
 }
 
-// TODO warning, comment type might cause issues later. test thoroughly.
 async function getThread(
   context: TriggerContext, comment: { id: string; parentId?: string }
 ): Promise<string[]> {
@@ -142,6 +141,7 @@ async function resultApply(
         `A severity level defined in a violated Policy does not exist in actionMap`)
     } else {
       // apply the function corresponding to each action
+      console.log("actions:" + actions)
       for (const a of actions) {
         actionFunctions[a](result, contentInfo, context)
       }
@@ -165,6 +165,7 @@ async function safeEvaluate(
   }
 ): Promise<EvaluationResult | null> {
   try {
+    // use policy engine to attempt to evaluate content
     const engine = await getEngine(context);
     const result: EvaluationResult = await engine.evaluate({
       text: contentInfo.text, 
@@ -175,7 +176,7 @@ async function safeEvaluate(
     });
     console.log("Content safely evaluated.")
     for (const v of result.violations) {
-      console.log(`${v.node.display_name ?? "unnamed"}, ${v.node.type} Violation explanation:
+      console.log(`${v.node.display_name ?? "unnamed node"} (${v.node.type}) violation explanation:
         ${v.explanation}`
       )
     }
