@@ -1,4 +1,6 @@
+clear env from git history
 deal with key leak
+fix removal/list of actions issue
 fix modmail line breaks by trying '\n\n', ' \n', and <br> 
 try without redditapi enabled
 fix validator errors
