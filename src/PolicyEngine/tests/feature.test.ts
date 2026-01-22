@@ -1,6 +1,6 @@
 /**
  * Feature tests
- * Uses match node whitelisting as a default for combinator tests
+ * Uses match node whitelisting as a default for combinator tests.
  */
 
 import { describe, it, expect } from 'vitest';
