@@ -1,17 +1,20 @@
 # Policy-Agent
 
-### A high-flexibility decision engine driven by structured, moderator-defined policies to determine the set of violations made by some unstructured text. This "Policy Engine" has user content routed to it by comment and post event listeners which use the policy evaluation result to apply moderation actions in accordance with moderator-defined instructions.
+### A high-flexibility, context-aware, semantic-aware decision engine driven by structured, moderator-defined policies to determine the set of violations made by some unstructured text. 
 
 ---
 
 ## Overview
 
+Existing rule-based content moderation tools are inflexible, unable to provide conditional 'x if y but not if z' type checks, consider thread context, nor identify violations of rules that forbid certain semantics or intentions rather than simple patterns of words tailored to a community's needs. 
 
-[2–4 sentences describing the problem this project solves, the core idea behind the solution, and the intended audience / use case.]
+Hooking up an LLM with Devvit for automatic removals is simple, but expensive, and even inaccurate as the complexity of a ruleset as a whole grows. How can we provide content moderators the power to define complex content policies, leverage the power of AI models, yet keep costs low (even free)?
 
+We define a language PDN (Policy Definition Language) as a strict subset of JSON that provides logical combinators (AND, OR, NOT) and chainable content evaluation predicates (ex. regex patterns), allowing users to define a tree representation of complex content evaluation policies.
 
-Initial launch and development focus is for integration with Reddit's developer platform Devvit, and
-the tool is en route for use on 2 subreddits (6k and 140k+ members) upon approval from Reddit.
+This project has implemented this model and an interpreter for PDN, and addressed the aforementioned issues (see 'key features'). 
+
+Initial launch and development focus is for integration with Reddit's developer platform Devvit. We have user content routed to this "Policy Engine" by comment and post event listeners so that results can be applied as Reddit mod actions in accordance with moderator-defined instructions. The tool is en route for use on 2 subreddits (6k and 140k+ members) upon approval from Reddit. 
 
 ---
 

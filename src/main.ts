@@ -190,13 +190,15 @@ async function safeEvaluate(
     } else if (typeof err === "string") {
       message = err;
     }
-    console.log(`Error during policy validation or content evaluation:\n ${message}`)
+    console.log(`Error during policy validation or content evaluation:
+      ${message}`)
     await context.reddit.modMail.createConversation({
       body: 
-      `An error occurred trying to evaluate the ${contentInfo.type} at:\n${contentInfo.link}
-      \nIf settings were recently changed, this could be a syntax error in your policy definition.
-      \nIf the error seems unexpected, contact parallax.moderator@gmail.com.
-      \nError: ${message}`,
+      `An error occurred trying to evaluate the ${contentInfo.type} at:
+      ${contentInfo.link}
+      If settings were recently changed, this could be a syntax error in your policy definition.
+      If the error seems unexpected, contact parallax.moderator@gmail.com.
+      Error: ${message}`,
       subredditName: context.subredditName!,
       subject: "Policy-Agent Error",
       to: null // i.e. internal moderator conversation

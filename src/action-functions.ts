@@ -18,10 +18,12 @@ const sendModmail: ActionFunction = async (
   const subject: string = 
     `Review ${content.type} for ${result.violations.length} met policy condition(s)`
   let body: string = 
-    `Review the following ${content.type} by u/${content.username}:\n ${content.link}\n`
+    `Review the following ${content.type} by u/${content.username}:
+    ${content.link}`
   for (const v of result.violations) {
     const severityStr = `${v.severity ? ` (of severity ${v.severity})`: ""}`
-    body += `Violation of ${v.node.display_name ?? v.node.type}${severityStr}:\n${v.explanation}\n`
+    body += `Violation of ${v.node.display_name ?? v.node.type}${severityStr}:
+    ${v.explanation}`
   }
   await context.reddit.modMail.createConversation({
     body: body,
