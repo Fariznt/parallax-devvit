@@ -23,7 +23,6 @@ const sendModmail: ActionFunction = async (
     const severityStr = `${v.severity ? ` (of severity ${v.severity})`: ""}`
     body += `Violation of ${v.node.display_name ?? v.node.type}${severityStr}:\n${v.explanation}\n`
   }
-  console.log(body)
   await context.reddit.modMail.createConversation({
     body: body,
     subredditName: context.subredditName!,
