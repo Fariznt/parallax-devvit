@@ -4,13 +4,9 @@
 
 This Privacy Policy describes how **Policy-Agent** (“the App”, “we”, “us”) collects, uses, stores, and shares information when installed and used on Reddit communities via the Devvit platform.
 
----
-
 ## 1. Scope
 
-This Privacy Policy applies only to data processed by the App in the context of Reddit moderation and content analysis. The Devvit App operates exclusively within Reddit and does not provide an external user-facing service. This Privacy Policy does NOT apply to other services or applications under the Parallax name operating for other platforms using the same core infrastructure.
-
----
+This Privacy Policy applies only to data processed by the Devvit App in the context of Reddit moderation and content analysis. The Devvit App operates exclusively within Reddit and does not provide an external user-facing service. This Privacy Policy does NOT apply to other services or applications under similar names or operating for other platforms using the same core infrastructure.
 
 ## What data we collect
 
@@ -62,8 +58,6 @@ The App uses settings configured by moderators, including:
 
 These settings are not collected from regular Reddit users; they are provided by moderators/admins configuring the App.
 
----
-
 ## 3. How We Use Data
 
 Collected or processed data is used solely for the following purposes:
@@ -83,8 +77,6 @@ The App does **not** use data for:
 - Analytics unrelated to moderation
 - Monetization or resale
 
----
-
 ## 4. How We Share Data
 
 ### 4.1 Reddit
@@ -101,15 +93,11 @@ Current third party services with whom any content is shared include:
 
 We do **not** sell, rent, or trade any data to third parties.
 
----
-
 ## 5. Data Storage and Retention
 
 - The App does not currently maintain a persistent external database of its own.
 - Temporary in-memory processing may occur during evaluation.
 - Based on configuration, the App may include limited excerpts of content, usernames, links, and policy evaluation explanations in **Reddit modmail** messages or **Reddit modqueue** sent to subreddit moderators.
-
----
 
 ## 7. Moderator Control and Responsibility
 
@@ -120,19 +108,13 @@ Moderators:
 
 The App acts strictly according to moderator-defined settings.
 
----
-
 ## 8. Children’s Privacy
 
 The App is not designed for use by children and processes only Reddit content subject to Reddit’s own age requirements.
 
----
-
 ## 9. Changes to This Policy
 
 This Privacy Policy may be updated as the App evolves. Material changes will be reflected by updating the “Last updated” date.
-
----
 
 ## 10. Contact
 

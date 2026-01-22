@@ -1,16 +1,13 @@
-# Parallax
+# Policy-Agent
 
-A high-flexibility decision engine driven by structured, moderator-defined policies to determine
-the set of violations made by some unstructured text. This "Policy Engine" has user content 
-routed to it by comment and post event listeners which use the policy evaluation result to apply 
-moderation actions in accordance with moderator-defined instructions.
+### A high-flexibility decision engine driven by structured, moderator-defined policies to determine the set of violations made by some unstructured text. This "Policy Engine" has user content routed to it by comment and post event listeners which use the policy evaluation result to apply moderation actions in accordance with moderator-defined instructions.
+
 ---
 
 ## Overview
 
 
-[2–4 sentences describing the problem this project solves, the core idea behind the solution, and the intended audience or use case.]
-
+[2–4 sentences describing the problem this project solves, the core idea behind the solution, and the intended audience / use case.]
 
 
 Initial launch and development focus is for integration with Reddit's developer platform Devvit, and
@@ -22,7 +19,7 @@ the tool is en route for use on 2 subreddits (6k and 140k+ members) upon approva
 
 - **High logical flexibility (boolean completeness over modular predicates)** – Moderators/policymakers can represent (practically) any boolean expression composed of checks (ex. regex matching) that determine user content as a violation or not. For example, we could represent x and (y or z) where each of x, y, and z are there own rule or boolean expression.
 - **High semantic flexibility (integrated LLM use)** - Policies can be defined to use LLM calls for checks (named semantic_check) under the same model explained above.
-- **High use-case flexibility (configurable scope of actions)** - Moderators can choose to what degree Parallax plays a role in their moderation workflow by defining violation severities and mapping those severities to moderation actions. For example, one subreddit may choose to use it as a early-report system (violations send to modmail), while another may harness automatic removals.
+- **High use-case flexibility (configurable scope of actions)** - Moderators can choose to what degree Policy-Agent plays a role in their moderation workflow by defining violation severities and mapping those severities to moderation actions. For example, one subreddit may choose to use it as a early-report system (violations send to modmail), while another may harness automatic removals.
 - **Time & cost saving measures (gated evaluation)** – The policy language is defined to enable and promote policies where expensive checks (ex. network calls and especially LLM usage) can be gated behind cheaper checks that first determine whether escalation is necessary. By default, failing of a given check results in escalation to a downstream check. 
 - **Explainable decisions** - All violations determined by the engine come packaged with corresponding explanations tailored to the content being evaluated, and internal execution traces are produced.
 - **Reproducible decisions** - All checks (including those involving LLMs) are ultimately deterministic (temperature = 0), improving policy debuggability. 
@@ -54,7 +51,7 @@ Details will be posted to ./docs/architecture
 
 ## Legal
 
-See ./legal for Terms of Service and Privacy Policy
+See ./legal for Terms of Service and Privacy Policy, which applies to the Devvit application. See LICENSE in root directory for license information, which applies to the code.
 
 ## Getting Started
 
