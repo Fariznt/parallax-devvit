@@ -181,7 +181,7 @@ async function safeEvaluate(
     }
     return result;
   } catch (err: unknown) {
-    // In case of failure, send informative error to modmail
+    // In case of failure, send informative error to modmail.
     let message = "Unknown error";
 
     if (err instanceof Error) {
