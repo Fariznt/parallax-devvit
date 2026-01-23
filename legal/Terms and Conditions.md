@@ -8,6 +8,8 @@ By accessing or using **Policy-Agent** (“the App”, “we”, “us”), you 
 ### 2. Description of the Service
 Policy-Agent is a software tool provided for experimental and moderation-assistance purposes. The Service may analyze user-generated content and produce automated outputs based on configurable rules or models. At present, the Service is operated solely by the project maintainer (u/PolicyAgent) for supervised use in select communities. Availability, access, or scope of use may change in the future, including potential availability to additional moderators or communities.
 
+Policy-Agent is a third-party application and is not affiliated with or endorsed by Reddit.
+
 ### 3. No Warranty
 The Service is provided **“as is”** and **“as available”**, without warranties of any kind, express or implied. Outputs may be inaccurate, incomplete, or unsuitable for your specific use case, and quality may vary by configuration.
 

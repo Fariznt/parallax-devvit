@@ -14,8 +14,11 @@ We define a language PDN (Policy Definition Language) as a strict subset of JSON
 
 This project has implemented this model and an interpreter for PDN, and addressed the aforementioned issues (see 'key features'). 
 
-Initial launch and development focus is for integration with Reddit's developer platform Devvit. We have user content routed to this "Policy Engine" by comment and post event listeners so that results can be applied as Reddit mod actions in accordance with moderator-defined instructions. The tool is en route for use on 2 subreddits (6k and 140k+ members) upon approval from Reddit. 
+Initial launch and development focus is for integration with Reddit's developer platform Devvit. We have user content routed to this "Policy Engine" by comment and post event listeners so that results can be applied as Reddit mod actions in accordance with moderator-defined instructions. The tool is en route for use on 2 subreddits (6k and 140k+ members) upon approval from Reddit*. 
 
+For questions, concerns, or support, contact: parallax.moderator@gmail.com
+
+*Policy-Agent is an independent third-party application and is not affiliated with or endorsed by Reddit.
 ---
 
 ## Key Features

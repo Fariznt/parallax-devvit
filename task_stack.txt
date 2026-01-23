@@ -1,16 +1,12 @@
-clear env from git history
-deal with key leak
-fix removal/list of actions issue
-fix modmail line breaks by trying '\n\n', ' \n', and <br> 
 try without redditapi enabled
-fix validator errors
-test removal/modmail integration
 (keep ban-related code in my gitignore for now (move it) + ask about it in request if possible)
 
-reddit dev testing
 
-add some  function header comments
-
+README:
+write some basic docs to comply with https://developers.reddit.com/docs/devvit_rules#overview
+be clear about roadmap, dormant code
+add some more function header comments
+review future to add simple quick things that are important (one/off? policy definition entry by the button?)
 publish ASAP
 UI/web migration is a priority
 
@@ -60,6 +56,7 @@ and/or more evaluation modes like cross-content batching, 0 batching
   rn need post/comment for error information (note this in docs)
   + more informative errors than current
 23. separate tests to different files
+24. cap context
 
 gassing up the project for resume. things i dont want to forget:
 -Tested for context awareness (thread history)

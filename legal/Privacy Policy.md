@@ -99,7 +99,7 @@ We do **not** sell, rent, or trade any data to third parties.
 - Temporary in-memory processing may occur during evaluation.
 - Based on configuration, the App may include limited excerpts of content, usernames, links, and policy evaluation explanations in **Reddit modmail** messages or **Reddit modqueue** sent to subreddit moderators.
 
-## 7. Moderator Control and Responsibility
+## 6. Moderator Control and Responsibility
 
 Moderators:
 - Fully control App configuration
@@ -108,15 +108,15 @@ Moderators:
 
 The App acts strictly according to moderator-defined settings.
 
-## 8. Children’s Privacy
+## 7. Children’s Privacy
 
 The App is not designed for use by children and processes only Reddit content subject to Reddit’s own age requirements.
 
-## 9. Changes to This Policy
+## 8. Changes to This Policy
 
 This Privacy Policy may be updated as the App evolves. Material changes will be reflected by updating the “Last updated” date.
 
-## 10. Contact
+## 9. Contact
 
 If you have questions or concerns about this Privacy Policy, please contact:
 
