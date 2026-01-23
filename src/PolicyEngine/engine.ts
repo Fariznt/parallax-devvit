@@ -21,18 +21,23 @@ import { normalize } from "./normalizer.js";
 import { json } from "stream/consumers";
 
 /**
- * TODO
+ * PolicyEngine is constructed according to an input policy, and provides
+ * content evaluation under that policy with subsequent evaluate() calls.
  */
+
 export class PolicyEngine {
   private readonly policyRoot: Policy;
 	private readonly model: ModelConfig| null;
 	private readonly noteMax: number; 
 
 	/**
-	 * TODO
-	 * @param policy 
-	 * @param model 
-	 * @param noteMax 
+	 * Create a PolicyEngine from a raw policy definition.
+	 * Validates and normalizes the policy, and optionally configures
+	 * an LLM model for semantic checks.
+	 *
+	 * @param policy Raw policy object (unvalidated)
+	 * @param model Optional model configuration for semantic checks
+	 * @param noteMax Maximum length of generated mod notes
 	 */
   constructor(
 		policy: Record<string, unknown>,
@@ -53,6 +58,9 @@ export class PolicyEngine {
 		this.noteMax = noteMax
 	}
 
+	/**
+	 * Build brief 100 character note summarizing list of violations 
+	 */
 	buildModNote(violations: Violation[]): string {
 		const MAX = this.noteMax;
 
@@ -87,8 +95,17 @@ export class PolicyEngine {
 
 
 	/**
-	 * TODO annotation
-	 * @param param0 
+	 * Internal evaluation routine that walks the policy tree,
+	 * collecting violations, traces, and deferred checks.
+	 *
+	 * This method performs all non-LLM evaluation and returns
+	 * a mutable EvaluationState used by the public evaluate() method,
+   * containing deferred LLM checks.
+	 *
+	 * @param doEarlyExit Whether all_of combinators may short-circuit
+	 * @param text Primary content text to evaluate
+	 * @param imageUrl Optional image URL associated with the content
+	 * @param contextList Optional surrounding context (e.g. thread)
 	 */
 	evaluateHelper(
 		{
