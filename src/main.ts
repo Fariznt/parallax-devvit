@@ -149,6 +149,11 @@ async function resultApply(
   }
 }
 
+/**
+ * Uses policy engine to return an EvaluationResult, but guarding for errors and 
+ * surfacing them to modmail.
+ * @returns EvaluationResult if successful, null otherwise
+ */
 async function safeEvaluate(
   {
     context,
@@ -296,31 +301,5 @@ Devvit.addTrigger({
     }
   },
 });
-
-// /**
-//  * Event listener for testing units of code during development
-//  */
-// Devvit.addMenuItem({
-//   location: 'subreddit',
-//   label: 'Run PolicyAgent Test',
-//   forUserType: 'moderator',
-//   onPress: async (event, context) => {
-//     const subredditName = context.subredditName;
-
-//     console.log(`PolicyAgent test triggered on r/${subredditName}`);
-
-//     if (subredditName) {
-//       // Example: fetch wiki policy
-//       const wiki = await context.reddit.getWikiPage(
-//         subredditName,
-//         'index'
-//       );
-//       console.log(wiki.content); 
-//     } else {
-//       console.log("subredditname undefined")
-//     }
- 
-//   },
-// });
 
 export default Devvit;

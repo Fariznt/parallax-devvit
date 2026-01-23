@@ -90,10 +90,9 @@ Here is a simple example to think about as you read this documentation. You will
 }
 
 If we were to express this policy as a tree (to help you understand what a 'node' is), it would like like the following:
+```
 
 [Policy as tree](https://imgur.com/a/MyiUp0M)
-
-```
 
 ---
 
