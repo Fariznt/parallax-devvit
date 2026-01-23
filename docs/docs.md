@@ -162,7 +162,7 @@ Tip: Use early exiting when you only want to know if content should be removed o
 
 ### `any_of`
 
-At least one child policy must be satisfied. If one is satisfied, we short-circuit and don't evaluate the rest because any_of is sastisfied. 
+At least one child policy must be satisfied. If one is satisfied, we short-circuit and don't evaluate the rest because any_of is sastisfied. Note that if all downstream nodes violate, ALL violations are added rather than just one for the any_of node---this means the final violations list may have interdependent violations (i.e. only violations because they all exist together) returned to moderators.
 
 Tip: Put cheaper checks earlier in an any_of node, and most expensive checks like semantic_check later.
 
@@ -318,8 +318,10 @@ Example:
 {
   "1": ["sendModmail"],
   "2": ["remove", "sendModmail"],
-  "4": ["remove", "lock", "ban:7"]
+  "4": ["remove"]
 }
+
+Currently supported mod actions include modmail, and removal.
 
 # 'LLM Base URL' and 'Model Name' (settings)
 

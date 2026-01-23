@@ -34,14 +34,6 @@ For questions, concerns, or support, contact: parallax.moderator@gmail.com
 
 ---
 
-## Architecture / Design
-
-TBD
-
-Details will be posted to ./docs/architecture in the future.
-
----
-
 ## Tech Stack
 
 - **Language(s):** Typescript, JSON -- languages limited by Devvit environment
@@ -51,6 +43,20 @@ Details will be posted to ./docs/architecture in the future.
 - **Tooling:** Vitest
 
 ---
+
+## Roadmap
+
+- Migration to web app to provide nicer UI for policy definition and access to evaluation traces*.
+- Storing evaluation traces in Redis database*
+-Ban action with custom number of days
+- Adding a core predicate, safety_check* (content safety classifier; more powerful than regex of match_node and cheaper than LLMs)
+- Add secondary predicates like language_check*, and possibly wrappers over current checks for easier simply policy definitions
+- Accepting YAML syntax for PDN
+- Report handling (currently relying on post and comment creation)
+- Better documentation -> Launch to public
+
+*Infrastructure, features, or dead code for this exists in the repository already
+**minor planned improvements and far-future plans not included
 
 # Getting Started / Documentation
 

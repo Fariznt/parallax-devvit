@@ -12,7 +12,8 @@ UI/web migration is a priority
 
 
 Future
-0. catch errors in main.ts, log, and dont take action
+
+0. architecture readme
 1. support for posts, not just comments (image understanding? at least route title as a comment)
 2. switch to yaml -> json conversion
 3. check compatibility with other apis
@@ -22,7 +23,6 @@ Future
 5. wrapping this is fundamental https://platform.openai.com/docs/guides/moderation?utm_source=chatgpt.com
     (MUST CHANGE TOS ACCORINDGLY)
 6. incorporate use of post history
-7. validate only one check per level (rn takes the cheapest one)
 8. hella documentation
     more than one semantic node in any_of block is invalid. enforce through validation
     input threads need identifiers
@@ -30,11 +30,7 @@ Future
     -semantic node has not been stress tested for a reasonable limit on semantic nodes per policy
     (how much can one prompt handle) and it would be difficult/unreasonable to do so (theres always a stronger model,
     and the splitting depends on use case/semantic complexity) (a framework to help users do this would be nice in the future)
-9. make address exist with line breaks
-10. change whitelist blacklist to allow and deny
-11. abstract away violation and nodeid init
 12. add to validation that semantic_check is invalid if no deafult LLMConfig or referenced key is missing etc.
-13. get rid of indexing in addresses... its unnecessary
 14. make types location consistent (theres some in validation rn)
 15 enforce this in validation:
   if (newDefChecks > 1) {
@@ -57,6 +53,7 @@ and/or more evaluation modes like cross-content batching, 0 batching
   + more informative errors than current
 23. separate tests to different files
 24. cap context
+
 
 gassing up the project for resume. things i dont want to forget:
 -Tested for context awareness (thread history)
