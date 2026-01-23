@@ -52,7 +52,7 @@ Devvit.addSettings([
   },
   {
     name: 'earlyExit',
-    label: `Early Exiting / Short-Circuiting in 'all_of'`,
+    label: `Early Exiting in 'all_of' ('true' or 'false')`,
     type: 'string',
     scope: 'installation'
   }

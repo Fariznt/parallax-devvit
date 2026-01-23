@@ -305,7 +305,7 @@ PDN that includes this is considered valid by the validator, but your evaluation
 
 Therefore, we omit details of how to define it. Curious eyes may consult the source code type.ts files.
 
-# Severity-Action Map
+# Severity-Action Map (setting)
 
 The **Severity-Action Map** is a Devvit setting (`Action by Severity`) that lets you automatically apply moderator actions based on the **highest severity** among all violated policy nodes.
 
@@ -321,3 +321,7 @@ Example:
   "2": ["remove", "sendModmail"],
   "4": ["remove", "lock", "ban:7"]
 }
+
+# 'LLM Base URL' and 'Model Name' (settings)
+
+The API url and model name for some OpenAI-compatible LLM API (ex. Gemini's) to use for semantic_checks. May be left blank if policy has no semantic_check.
