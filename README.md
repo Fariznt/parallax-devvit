@@ -27,9 +27,9 @@ For questions, concerns, or support, contact: parallax.moderator@gmail.com
 - **High semantic flexibility (integrated LLM use)** - Policies can be defined to use LLM calls for checks (named semantic_check) under the same model explained above.
 - **High use-case flexibility (configurable scope of actions)** - Moderators can choose to what degree Policy-Agent plays a role in their moderation workflow by defining violation severities and mapping those severities to moderation actions. For example, one subreddit may choose to use it as a early-report system (violations send to modmail), while another may harness automatic removals.
 - **Time & cost saving measures (gated evaluation)** – The policy language is defined to enable and promote policies where expensive checks (ex. network calls and especially LLM usage) can be gated behind cheaper checks that first determine whether escalation is necessary. By default, failing of a given check results in escalation to a downstream check. 
-- **Explainable decisions** - All violations determined by the engine come packaged with corresponding explanations tailored to the content being evaluated, and internal execution traces are produced.
+- **Explainable decisions and monitorability** - All violations determined by the engine come packaged with corresponding explanations tailored to the content being evaluated, and internal execution traces are produced. Moderators may configure the app to inform themselves of any subset of violations and mod actions they want to be informed of, with the default being that all violations are sent to modmail (with no other/silent mod actions ocurring).
 - **Reproducible decisions** - All checks (including those involving LLMs) are ultimately deterministic (temperature = 0), improving policy debuggability. 
-- **Error feedback** - Errors during evaluation are surfaced to modmail. This is most useful for debugging your policy definition (for which the validator provides an address of failure within your policy definition).
+- **Error feedback** - Errors during evaluation are surfaced to modmail. This is most useful for debugging your PDN syntax (for which the validator provides an address of failure within your policy definition).
 - **Robustness under adversarial input** – Any check that uses LLMs is guarded against prompt injection and has been briefly tested for this capability.
 
 ---
@@ -40,7 +40,7 @@ TBD
 
 <talk about separation of policy engine and devvit components, platform agnostic intention>
 
-Details will be posted to ./docs/architecture
+Details will be posted to ./docs/architecture in the future.
 
 ---
 
@@ -60,15 +60,9 @@ Details will be posted to ./docs/architecture
 
 See ./legal for Terms of Service and Privacy Policy, which applies to the Devvit application. See LICENSE in root directory for license information, which applies to the code.
 
-## Getting Started
-
-TBD
-
 ## Documentation
 
-See ./docs directory for complete documentation (highly recommended if anyone else chooses to
-use this tool). 'Getting Started' is an overview.
-
+See ./docs directory for complete documentation.
 ---
 
 # Devvit Submission Requirements
