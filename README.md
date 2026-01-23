@@ -38,8 +38,6 @@ For questions, concerns, or support, contact: parallax.moderator@gmail.com
 
 TBD
 
-<talk about separation of policy engine and devvit components, platform agnostic intention>
-
 Details will be posted to ./docs/architecture in the future.
 
 ---
