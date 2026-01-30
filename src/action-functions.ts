@@ -28,10 +28,14 @@ const sendModmail: ActionFunction = async (
     const severityStr = `${v.severity ? ` (of severity ${v.severity})` : ""}`;
 
     body +=
-  `Violation of ${v.node.display_name ?? v.node.type}${severityStr}:
-  ${v.explanation}
+    `
+    
+    Violation of ${v.node.display_name ?? v.node.type}${severityStr}:
 
-  `;
+    ${v.explanation}
+
+    
+    `;
   }
   await context.reddit.modMail.createConversation({
     body: body,
