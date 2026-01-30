@@ -58,13 +58,13 @@ Devvit.addSettings([
     type: 'boolean',
     scope: 'installation'
   },
-  // {
-  //   name: "enabled",
-  //   label: "Enable Policy Agent",
-  //   type: "boolean",
-  //   defaultValue: false,
-  //   scope: 'installation',
-  // }
+  {
+    name: "enabled",
+    label: "Enable Policy Agent",
+    type: "boolean",
+    defaultValue: false,
+    scope: 'installation',
+  }
 ]);
 
 let engine: PolicyEngine | undefined;
@@ -221,6 +221,39 @@ async function safeEvaluate(
   }
 }
 
+async function handleCommentCreate(
+  event: TriggerEventType["CommentCreate"], 
+  context: TriggerContext) {
+  const comment = event.comment;
+  const text = comment?.body ?? "";
+  if (!comment || !text) return;
+  const commentThread: string[] = await getThread(context, comment);
+
+  const commentInfo: ContentInfo = {
+    username: event.author?.name ?? null,
+    id: event.comment?.id ?? null,
+    text: text,
+    link: event.comment?.permalink ?? null,
+    imgUrl: null,
+    type: "comment"
+  }
+  
+  const apiKey = await loadKeyFromSettings(context);
+  const earlyExit = await loadEarlyExitFromSettings(context);
+
+  const result: EvaluationResult | null = await safeEvaluate({
+    context: context,
+    contentInfo: commentInfo, 
+    contextList: commentThread, 
+    apiKey: apiKey, 
+    doEarlyExit: earlyExit
+  })
+
+  if (result) {
+    resultApply(result, commentInfo, context);
+  }
+}
+
 /**
  * Event listener for user comments. Uses PolicyEngine to do an evaluation and applies
  * relevant actions.
@@ -229,38 +262,64 @@ Devvit.addTrigger({
   // Fires for new comments, including replies.
   event: "CommentCreate", // TODO: include posts
   onEvent: async (event: TriggerEventType["CommentCreate"], context) => {
-    console.log('CommentCreate event triggered');
-
-    const comment = event.comment;
-    const text = comment?.body ?? "";
-    if (!comment || !text) return;
-    const commentThread: string[] = await getThread(context, comment);
-
-    const commentInfo: ContentInfo = {
-      username: event.author?.name ?? null,
-      id: event.comment?.id ?? null,
-      text: text,
-      link: event.comment?.permalink ?? null,
-      imgUrl: null,
-      type: "comment"
+    let enabled = await context.settings.get("enabled");
+    if (typeof enabled !== "boolean") {
+      await context.reddit.modMail.createConversation({
+        body: 
+        `Invalid type for 'enabled' setting. Defaulting to false.`,
+        subredditName: context.subredditName!,
+        subject: "Policy-Agent Error",
+        to: null
+      });
+      enabled = false;
     }
-    
-    const apiKey = await loadKeyFromSettings(context);
-    const earlyExit = await loadEarlyExitFromSettings(context);
-
-    const result: EvaluationResult | null = await safeEvaluate({
-      context: context,
-      contentInfo: commentInfo, 
-      contextList: commentThread, 
-      apiKey: apiKey, 
-      doEarlyExit: earlyExit
-    })
-
-    if (result) {
-      resultApply(result, commentInfo, context);
+    if (enabled) {
+      console.log('CommentCreate event triggered');
+      await handleCommentCreate(event, context)
     }
   },
 });
+
+async function handlePostCreate(
+  event: TriggerEventType["PostCreate"], 
+  context: TriggerContext) {
+  const post = event.post ? await context.reddit.getPostById(event.post.id) : null;
+  if (!post) {
+    console.warn("PostCreate fired without post payload");
+    return;
+  }
+
+  const body = post.body ? post.body.trim() : "No Body";
+  const title = post.title.trim();
+  const text =
+    `POST TITLE:\n${title}\n\n` +
+    `POST BODY:\n${body}`;
+
+  const enrichedThumbnail = await post.getEnrichedThumbnail();
+  const imgLink = enrichedThumbnail?.image.url ?? null;
+
+  const postInfo: ContentInfo = {
+    username: event.author?.name ?? null,
+    id: event.post?.id ?? null,
+    text: text,
+    link: event.post?.permalink ?? null,
+    imgUrl: imgLink,
+    type: "post"
+  }
+
+  const apiKey = await loadKeyFromSettings(context);
+  const earlyExit = await loadEarlyExitFromSettings(context)
+  const result: EvaluationResult | null = await safeEvaluate({
+    context: context,
+    contentInfo: postInfo, 
+    apiKey: apiKey, 
+    doEarlyExit: earlyExit
+  })
+
+  if (result) {
+    resultApply(result, postInfo, context);
+  }
+}
 
 /**
  * Event listener for user posts. Uses PolicyEngine to do an evaluation and applies
@@ -270,72 +329,22 @@ Devvit.addTrigger({
   // Fires for newly created posts.
   event: "PostCreate",
   onEvent: async (event: TriggerEventType["PostCreate"], context) => {
-    console.log("PostCreate event triggered");
-
-    const post = event.post ? await context.reddit.getPostById(event.post.id) : null;
-    if (!post) {
-      console.warn("PostCreate fired without post payload");
-      return;
+    let enabled = await context.settings.get("enabled");
+    if (typeof enabled !== "boolean") {
+      await context.reddit.modMail.createConversation({
+        body: 
+        `Invalid type for 'enabled' setting. Defaulting to false.`,
+        subredditName: context.subredditName!,
+        subject: "Policy-Agent Error",
+        to: null
+      });
+      enabled = false;
     }
-
-    const body = post.body ? post.body.trim() : "No Body";
-    const title = post.title.trim();
-    const text =
-      `POST TITLE:\n${title}\n\n` +
-      `POST BODY:\n${body}`;
-
-    const enrichedThumbnail = await post.getEnrichedThumbnail();
-    const imgLink = enrichedThumbnail?.image.url ?? null;
-
-    const postInfo: ContentInfo = {
-      username: event.author?.name ?? null,
-      id: event.post?.id ?? null,
-      text: text,
-      link: event.post?.permalink ?? null,
-      imgUrl: imgLink,
-      type: "post"
+    if (enabled) {
+      console.log('PostCreate event triggered');
+      await handlePostCreate(event, context)
     }
-
-    const apiKey = await loadKeyFromSettings(context);
-    const earlyExit = await loadEarlyExitFromSettings(context)
-    const result: EvaluationResult | null = await safeEvaluate({
-      context: context,
-      contentInfo: postInfo, 
-      apiKey: apiKey, 
-      doEarlyExit: earlyExit
-    })
-
-    if (result) {
-      resultApply(result, postInfo, context);
-    }
-  },
+  }
 });
-
-
-// /**
-//  * Event listener for testing units of code during development
-//  */
-// Devvit.addMenuItem({
-//   location: 'subreddit',
-//   label: 'Run PolicyAgent Test',
-//   forUserType: 'moderator',
-//   onPress: async (event, context) => {
-//     const subredditName = context.subredditName;
-
-//     console.log(`PolicyAgent test triggered on r/${subredditName}`);
-
-//     if (subredditName) {
-//       // Example: fetch wiki policy
-//       const wiki = await context.reddit.getWikiPage(
-//         subredditName,
-//         'index'
-//       );
-//       console.log(wiki.content); 
-//     } else {
-//       console.log("subredditname undefined")
-//     }
-
-//   },
-// });
 
 export default Devvit;

@@ -15,15 +15,23 @@ const sendModmail: ActionFunction = async (
     content.link = "<link could not be obtained>"
   }
 
-  const subject: string = 
-    `Review ${content.type} for ${result.violations.length} failed policy condition(s)`
-  let body: string = 
+  const subject: string =
+    `Review ${content.type} for ${result.violations.length} failed policy condition(s)`;
+
+  let body: string =
     `Review the following ${content.type} by u/${content.username}:
-    ${content.link}`
+  ${content.link}
+
+  `;
+
   for (const v of result.violations) {
-    const severityStr = `${v.severity ? ` (of severity ${v.severity})`: ""}`
-    body += `Violation of ${v.node.display_name ?? v.node.type}${severityStr}:
-    ${v.explanation}`
+    const severityStr = `${v.severity ? ` (of severity ${v.severity})` : ""}`;
+
+    body +=
+  `Violation of ${v.node.display_name ?? v.node.type}${severityStr}:
+  ${v.explanation}
+
+  `;
   }
   await context.reddit.modMail.createConversation({
     body: body,

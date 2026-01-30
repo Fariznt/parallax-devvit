@@ -1,6 +1,7 @@
 try without redditapi enabled
 (keep ban-related code in my gitignore for now (move it) + ask about it in request if possible)
 
+figure out line break thing quick
 
 README:
 write some basic docs to comply with https://developers.reddit.com/docs/devvit_rules#overview
