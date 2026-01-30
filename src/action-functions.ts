@@ -7,7 +7,7 @@ const sendModmail: ActionFunction = async (
   content,
   context
 ) => {
-  // Edge case handling---Devvit events don't guarantee these
+  // Edge case handling---Devvit events don't guarantee these are truthy
   if (!content.username) {
     content.username = "unknown user"
   }
@@ -16,7 +16,7 @@ const sendModmail: ActionFunction = async (
   }
 
   const subject: string = 
-    `Review ${content.type} for ${result.violations.length} met policy condition(s)`
+    `Review ${content.type} for ${result.violations.length} failed policy condition(s)`
   let body: string = 
     `Review the following ${content.type} by u/${content.username}:
     ${content.link}`
@@ -33,13 +33,13 @@ const sendModmail: ActionFunction = async (
   });
 };
 
-const sendModqueue: ActionFunction = async (
-  result,
-  content,
-  context
-) => {
-  // TODO: implement modqueue report
-};
+// const sendModqueue: ActionFunction = async (
+//   result,
+//   content,
+//   context
+// ) => {
+//   // TODO: implement modqueue report
+// };
 
 const remove: ActionFunction = async (
   result,
@@ -60,13 +60,13 @@ const remove: ActionFunction = async (
   }
 };
 
-const ban: ActionFunction = async (
-  result,
-  content,
-  context
-) => {
-  // TODO: implement ban (perma or temp handled internally)
-};
+// const ban: ActionFunction = async (
+//   result,
+//   content,
+//   context
+// ) => {
+//   // TODO: implement ban (perma or temp handled internally)
+// };
 
 
 /**
@@ -75,7 +75,7 @@ const ban: ActionFunction = async (
  */
 export const actionFunctions: Record<string, ActionFunction> = {
   sendModmail: sendModmail,
-  sendModqueue: sendModqueue,
+  // sendModqueue: sendModqueue,
   remove: remove,
-  ban: ban,
+  // ban: ban,
 };

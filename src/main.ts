@@ -42,20 +42,29 @@ Devvit.addSettings([
     label: 'LLM Base URL',
     type: 'string',
     scope: 'installation', 
+    defaultValue: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
   },
   {
     name: 'llmName',
     label: 'LLM Model Name',
     type: 'string',
     scope: 'installation', 
-    defaultValue: 'gpt-3.5-turbo',
+    defaultValue: 'gemini-2.5-flash-lite',
   },
   {
     name: 'earlyExit',
-    label: `Early Exiting in 'all_of' ('true' or 'false')`,
-    type: 'string',
+    label: `Early Exiting in 'all_of'`,
+    defaultValue: false,
+    type: 'boolean',
     scope: 'installation'
-  }
+  },
+  // {
+  //   name: "enabled",
+  //   label: "Enable Policy Agent",
+  //   type: "boolean",
+  //   defaultValue: false,
+  //   scope: 'installation',
+  // }
 ]);
 
 let engine: PolicyEngine | undefined;
@@ -301,5 +310,32 @@ Devvit.addTrigger({
     }
   },
 });
+
+
+// /**
+//  * Event listener for testing units of code during development
+//  */
+// Devvit.addMenuItem({
+//   location: 'subreddit',
+//   label: 'Run PolicyAgent Test',
+//   forUserType: 'moderator',
+//   onPress: async (event, context) => {
+//     const subredditName = context.subredditName;
+
+//     console.log(`PolicyAgent test triggered on r/${subredditName}`);
+
+//     if (subredditName) {
+//       // Example: fetch wiki policy
+//       const wiki = await context.reddit.getWikiPage(
+//         subredditName,
+//         'index'
+//       );
+//       console.log(wiki.content); 
+//     } else {
+//       console.log("subredditname undefined")
+//     }
+
+//   },
+// });
 
 export default Devvit;

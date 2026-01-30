@@ -109,16 +109,10 @@ export async function loadPolicyFromSettings(
 export async function loadEarlyExitFromSettings(
     context: TriggerContext
 ): Promise<boolean> {
-  const raw = await context.settings.get("earlyExit");
-  if (typeof raw !== "string" || raw.length === 0) {
-    throw new Error('Setting "earlyExit" must be a non-empty string');
+  const earlyExit = await context.settings.get("earlyExit");
+  if (typeof earlyExit !== "boolean") {
+    throw new Error('Setting "earlyExit" must be a boolean');
   }
-
-  if (!(raw.toLowerCase() == "true" || raw.toLowerCase() == "false")) {
-    throw new Error(`Setting "earlyExit" must be 'true' or 'false'`);
-  }
-
-  let earlyExit: boolean = raw.toLowerCase() === "true"
   return earlyExit
 }
 
