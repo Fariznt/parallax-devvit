@@ -3,3 +3,4 @@ task_stack.txt
 examples
 .env
 **/.env
+dist

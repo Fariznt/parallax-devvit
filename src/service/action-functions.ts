@@ -1,6 +1,6 @@
-import { EvaluationResult } from "../PolicyEngine/handlers/types.js";
+import { EvaluationResult } from "./PolicyEngine/handlers/types.js";
 import { TriggerContext } from "@devvit/public-api";
-import { ContentInfo, ActionFunction } from "../types.js"
+import { ContentInfo, ActionFunction } from "./types.js"
 
 const sendModmail: ActionFunction = async (
   result: EvaluationResult,

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "policy-agent",
   "blocks": {
     "entry": "src/service/main.ts"
@@ -19,7 +20,21 @@
     "dir": "dist/server",
     "entry": "index.cjs"
   },
-  "permissions": {
-    "redis": true
+  "media": {
+    "dir": "assets"
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "Create Policy Agent Moderation Webview",
+        "description": "Moderation Webview",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/post-create"
+      }
+    ]
+  },
+  "triggers": {
+    "onAppInstall": "/internal/on-app-install"
   }
 }

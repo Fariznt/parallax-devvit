@@ -1,4 +1,5 @@
-{// TypeScript config for all Devvit server code.
+// TypeScript config for all Devvit server code.
+{
   "extends": "../../tools/tsconfig-base.json",
   "compilerOptions": {
     "lib": ["ES2023"],
