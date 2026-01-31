@@ -6,7 +6,7 @@ import {
   loadKeyFromSettings, 
   loadPolicyFromSettings, 
 } from "./settings-loader.js";
-import { actionFunctions } from "./action-functions.js";
+import { actionFunctions, modmailErr } from "./action-functions.js";
 import type { TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
 import type { EvaluationResult, Violation } from "./PolicyEngine/handlers/types.js";
 import type { ModelConfig } from "./PolicyEngine/types.js"
@@ -128,6 +128,12 @@ async function resultApply(
   contentInfo: ContentInfo, 
   context: TriggerContext
 ): Promise<void> {
+  // nothing to do if no violations
+  if (result.violations.length === 0) {
+    return;
+  }
+  console.log("\nViolations: " + JSON.stringify(result.violations))
+
   let action: string; 
   let maxSeverity: number | null = null;
   const actionMap: SeverityActionMap | null = await loadActionMapFromSettings(context)
@@ -140,14 +146,15 @@ async function resultApply(
     }
   }
 
-  if (!actionMap || !maxSeverity) { 
+  if (!actionMap || maxSeverity == null) { 
     // no severity map provided, or no severity in violated nodes, default to modmail
+    console.log("No valid actionMap or maxSeverity; defaulting to modmail")
     actionFunctions["sendModmail"](result, contentInfo, context)
   } else {
     const actions: string[] = actionMap[maxSeverity]
     if (!(maxSeverity in actionMap)) {
-      throw new Error(
-        `A severity level defined in a violated Policy does not exist in actionMap`)
+      await modmailErr(context,
+        `A severity level defined in a violated Policy does not exist in actionMap`);
     } else {
       // apply the function corresponding to each action
       console.log("actions:" + actions)
@@ -204,19 +211,13 @@ async function safeEvaluate(
     } else if (typeof err === "string") {
       message = err;
     }
-    console.log(`Error during policy validation or content evaluation:
-      ${message}`)
-    await context.reddit.modMail.createConversation({
-      body: 
-      `An error occurred trying to evaluate the ${contentInfo.type} at:
-      ${contentInfo.link}
-      If settings were recently changed, this could be a syntax error in your policy definition.
-      If the error seems unexpected, contact parallax.moderator@gmail.com.
-      Error: ${message}`,
-      subredditName: context.subredditName!,
-      subject: "Policy-Agent Error",
-      to: null // i.e. internal moderator conversation
-    });
+    await modmailErr(context,
+    `An error occurred trying to evaluate the ${contentInfo.type} at:
+    ${contentInfo.link}
+    If settings were recently changed, this could be a syntax error in your policy definition.
+    If the error seems unexpected, contact parallax.moderator@gmail.com.
+    Error: ${message}`
+    )
     return null
   }
 }
@@ -250,6 +251,7 @@ async function handleCommentCreate(
   })
 
   if (result) {
+    console.log("Evaluated comment. Trace: " + JSON.stringify(result.trace))
     resultApply(result, commentInfo, context);
   }
 }
@@ -264,13 +266,7 @@ Devvit.addTrigger({
   onEvent: async (event: TriggerEventType["CommentCreate"], context) => {
     let enabled = await context.settings.get("enabled");
     if (typeof enabled !== "boolean") {
-      await context.reddit.modMail.createConversation({
-        body: 
-        `Invalid type for 'enabled' setting. Defaulting to false.`,
-        subredditName: context.subredditName!,
-        subject: "Policy-Agent Error",
-        to: null
-      });
+      await modmailErr(context, `Invalid type for 'enabled' setting. Defaulting to false.`)
       enabled = false;
     }
     if (enabled) {
@@ -317,6 +313,7 @@ async function handlePostCreate(
   })
 
   if (result) {
+    console.log("Evaluated post. Trace: " + JSON.stringify(result.trace))
     resultApply(result, postInfo, context);
   }
 }
@@ -331,13 +328,7 @@ Devvit.addTrigger({
   onEvent: async (event: TriggerEventType["PostCreate"], context) => {
     let enabled = await context.settings.get("enabled");
     if (typeof enabled !== "boolean") {
-      await context.reddit.modMail.createConversation({
-        body: 
-        `Invalid type for 'enabled' setting. Defaulting to false.`,
-        subredditName: context.subredditName!,
-        subject: "Policy-Agent Error",
-        to: null
-      });
+      await modmailErr(context, `Invalid type for 'enabled' setting. Defaulting to false.`)
       enabled = false;
     }
     if (enabled) {

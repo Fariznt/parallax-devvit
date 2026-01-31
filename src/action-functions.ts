@@ -20,19 +20,17 @@ const sendModmail: ActionFunction = async (
 
   let body: string =
     `Review the following ${content.type} by u/${content.username}:  
-    ${content.link}
-
-    \`\`\``;
+    ${content.link}\n\n`;
+  body += "\`\`\`";
 
   for (const v of result.violations) {
     const severityStr = `${v.severity ? ` (of severity ${v.severity})` : ""}`;
     body +=
-    `
-    Violation of ${v.node.display_name ?? v.node.type}${severityStr}:
-    ${v.explanation}
-    `;
+    `\n\nViolation of "${v.node.display_name ?? v.node.type}"${severityStr}:
+    ${v.explanation}\n\n`;
   }
   body += "\`\`\`";
+
   await context.reddit.modMail.createConversation({
     body: body,
     subredditName: context.subredditName!,
@@ -40,6 +38,7 @@ const sendModmail: ActionFunction = async (
     to: null // i.e. internal moderator conversation
   });
 };
+
 
 // const sendModqueue: ActionFunction = async (
 //   result,
@@ -74,6 +73,7 @@ const remove: ActionFunction = async (
 //   context
 // ) => {
 //   // TODO: implement ban (perma or temp handled internally)
+
 // };
 
 
@@ -87,3 +87,22 @@ export const actionFunctions: Record<string, ActionFunction> = {
   remove: remove,
   // ban: ban,
 };
+
+/**
+ * Separately exported function for sending error message to modmail
+ * at any point of failure. Prevents entire app from failing.
+ * @param context 
+ * @param errorMessage 
+ */
+export async function modmailErr(
+  context: TriggerContext,
+  errorMessage: string
+): Promise<void> {
+  console.log("Sending error to modmail:\n", errorMessage);
+  await context.reddit.modMail.createConversation({
+    body: errorMessage,
+    subredditName: context.subredditName!,
+    subject: "Policy-Agent Error",
+    to: null // i.e. internal moderator conversation
+  });
+}

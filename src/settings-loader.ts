@@ -1,11 +1,12 @@
 import type { TriggerContext } from "@devvit/public-api";
 import type { SeverityActionMap } from "./types.js"
+import { modmailErr } from "./action-functions.js";
 
 const ACTIONS = new Set([
   'sendModmail',
   'sendModqueue',
   'remove',
-  'ban',
+  // 'ban',
 ]);
 
 export function validateSeverityActions(parsed: unknown): SeverityActionMap {
@@ -69,14 +70,16 @@ export async function loadActionMapFromSettings(
   if (!raw) return null;
 
   if (typeof raw !== "string") {
-    throw new Error('Setting "actionJson" must be a string');
+    modmailErr(context, 'Setting "actionJson" must be a string');
+    return null;
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
-  } catch {
-    throw new Error('"actionJson" is not valid JSON');
+  } catch (err) {
+    modmailErr(context, '"actionJson" is not valid JSON');
+    return null;
   }
 
   const validated = validateSeverityActions(parsed);

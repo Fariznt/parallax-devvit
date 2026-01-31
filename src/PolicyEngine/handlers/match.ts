@@ -106,17 +106,17 @@ export function evalMatch({
       evalNode(policyNode.next_check, negate, nodeAddress)
     } else {
       if (useGlobalSeq && whitelist) {
-        explanation = `The following patterns failed to match in sequence:
-        ${unmatchedPatterns.map(p => `- ${p}`).join("\n")}`
+        explanation = "The following patterns failed to match in sequence:\n\n" +
+        `${unmatchedPatterns.map(p => `- ${p}`).join("\n\n")}`
       } else if (useGlobalSeq && !whitelist) {
-        explanation = `The following patterns matched in sequence:
-        ${matchedPatterns.map(p => `- ${p}`).join("\n")}`
+        explanation = "The following patterns matched in sequence:\n\n" +
+        `${matchedPatterns.map(p => `- ${p}`).join("\n\n")}`
       } else if (!useGlobalSeq && whitelist) {
-        explanation = `The following patterns failed to match:
-        ${unmatchedPatterns.map(p => `- ${p}`).join("\n")}`
+        explanation = "The following patterns failed to match:\n\n" +
+        `${unmatchedPatterns.map(p => `- ${p}`).join("\n\n")}`
       } else if (!useGlobalSeq && !whitelist) {
-        explanation = `The following patterns matched:
-        ${matchedPatterns.map(p => `- ${p}`).join("\n")}`
+        explanation = "The following patterns matched:\n\n" +
+        `${matchedPatterns.map(p => `- ${p}`).join("\n\n")}`
       }
 
       const newViolation: Violation = {

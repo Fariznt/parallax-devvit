@@ -66,8 +66,6 @@ function getRuleJson(
   return { conditions };
 }
 
-
-// TODO: make better system prompt, this is testing from my python prototype
 /**
  * Builds the system prompt to an LLM for a batched semantic check.
  * @param checks 
@@ -104,7 +102,7 @@ function buildSystemPrompt(checks: Record<number, DeferredCheck>): string {
     }
     
     Rules:
-    -"results" should have exactly one corresponding entry for each condition provided.
+    -"results" should have a corresponding entry for EVERY condition id in the conditions JSON provided.
     -The <number> for "id" is exactly the "id" provided for the condition in the conditions JSON
     -The <boolean> for "match" should be true if the condition is met by the TARGET text, 
     and false if not met by the TARGET text.
@@ -207,7 +205,6 @@ function safeParse(rawResponse: string, model: string, baseUrl: string): any {
   }
 }
 
-// TODO: adjust in accordance with changes to system prompt
 /**
  * Validates the LLM's output JSON as validly shaped for use in generating
  * final outputs.
@@ -262,7 +259,8 @@ export async function doDeferredChecks(
   // let checks: DeferredCheck[] = evalState.deferredChecks
   const checks: Record<number, DeferredCheck> =
     Object.fromEntries(evalState.deferredChecks.map((v, i) => [i + 1, v]));
-
+  console.log('Performing deferred semantic checks with LLM:\n' + JSON.stringify(checks))
+  
   // Organize input to LLM
   const systemPrompt = buildSystemPrompt(checks);
   const context = contextList ? `CONTEXT_START\n${contextList.join("\n")}\nCONTEXT_END` : null;
@@ -280,6 +278,8 @@ export async function doDeferredChecks(
 
   // Parse and validate
   let parsed: unknown = safeParse(rawResponse, model, baseUrl)
+  console.log("LLM response parsed: \n" + JSON.stringify(parsed))
+
   validateResponseShape(parsed)
 
   // Apply results to the evaluation state

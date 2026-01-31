@@ -1,14 +1,13 @@
+add separate/extra aisha check for modmail
+publish ASAP
+
+
 try without redditapi enabled
 (keep ban-related code in my gitignore for now (move it) + ask about it in request if possible)
 
-figure out line break thing quick
+
 
 README:
-write some basic docs to comply with https://developers.reddit.com/docs/devvit_rules#overview
-be clear about roadmap, dormant code
-add some more function header comments
-review future to add simple quick things that are important (one/off? policy definition entry by the button?)
-publish ASAP
 UI/web migration is a priority
 
 
@@ -54,7 +53,10 @@ and/or more evaluation modes like cross-content batching, 0 batching
   + more informative errors than current
 23. separate tests to different files
 24. cap context
-
+25. errors are spammed to modmail. problematic for repeated issues. will be fixable once there is a database for caching errors
+26. allow next check in combinators? is it necessary? if so, need to code it in. otherwise,
+validator should explicitly prevent it
+27. something might be wrong with addressing like "its ok to be gay" evaluated by izlanimemes
 
 gassing up the project for resume. things i dont want to forget:
 -Tested for context awareness (thread history)
