@@ -1,6 +1,6 @@
 # Policy-Agent
 
-### A high-flexibility, context-aware, semantic-aware decision engine driven by structured, moderator-defined policies to determine the set of violations made by some unstructured text. 
+### A high-flexibility, context-aware, semantic-aware decision engine driven by structured, moderator-defined policies for content moderation. 
 
 ---
 
@@ -18,7 +18,8 @@ Initial launch and development focus is for integration with Reddit's developer 
 
 For questions, concerns, or support, contact: parallax.moderator@gmail.com
 
-*Policy-Agent is an independent third-party application and is not affiliated with or endorsed by Reddit.
+Policy-Agent is an independent third-party application and is not affiliated with or endorsed by Reddit.
+
 ---
 
 ## Key Features
