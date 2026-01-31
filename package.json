@@ -5,20 +5,41 @@
   "license": "BSD-3-Clause",
   "type": "module",
   "scripts": {
-    "deploy": "devvit upload",
-    "dev": "dotenv -e .env -- devvit playtest",
+    "build:client": "cd src/client && vite build",
+    "build:server": "cd src/server && vite build",
+    "build": "npm run build:client && npm run build:server",
+    "deploy": "npm run build && devvit upload",
+    "dev": "concurrently -k -p \"[{name}]\" -n \"CLIENT,SERVER,DEVVIT\" -c \"blue,green,magenta\" \"npm run dev:client\" \"npm run dev:server\" \"npm run dev:devvit\"",
+    "dev:client": "cd src/client && vite build --watch",
+    "dev:devvit": "devvit playtest r/policy_agent_dev",
+    "dev:server": "cd src/server && vite build --watch",
+    "dev:vite": "cd src/client && vite --port 7474",
     "login": "devvit login",
-    "launch": "devvit publish",
+    "launch": "npm run build && npm run deploy && devvit publish",
     "type-check": "tsc --build",
     "test": "vitest"
   },
   "dependencies": {
-    "@devvit/public-api": "0.12.7"
+    "@devvit/public-api": "0.12.7",
+    "@devvit/web": "^0.12.10",
+    "clsx": "2.1.1",
+    "devvit": "0.12.10",
+    "express": "^5.2.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tailwind-merge": "3.3.0"
   },
   "devDependencies": {
-    "devvit": "0.12.7",
+    "@tailwindcss/vite": "4.1.18",
+    "@types/express": "^5.0.6",
+    "@types/react": "19.1.4",
+    "@types/react-dom": "19.1.5",
+    "@vitejs/plugin-react": "5.1.2",
+    "concurrently": "9.1.2",
     "dotenv-cli": "8.0.0",
+    "tailwindcss": "4.1.18",
     "typescript": "5.8.3",
-    "vitest": "^4.0.17"
+    "vite": "7.3.1",
+    "vitest": "4.0.18"
   }
 }

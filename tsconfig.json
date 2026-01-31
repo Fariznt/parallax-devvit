@@ -1,6 +1,4 @@
 {
-  "extends": "@devvit/public-api/devvit.tsconfig.json",
-  "compilerOptions": {
-    "lib": ["ES2022", "DOM"]
-  }
+  "files": [],
+  "references": [{ "path": "./src/client" }, { "path": "./src/service" }, { "path": "./src/server" }, { "path": "./src/shared" }]
 }
