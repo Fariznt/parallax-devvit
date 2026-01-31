@@ -1,0 +1,7 @@
+{
+  "name": "policy-agent",
+  "blocks": {
+    "entry": "src/main.ts",
+    "triggers": ["onPostCreate", "onCommentCreate"]
+  }
+}
