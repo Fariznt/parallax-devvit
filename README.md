@@ -42,6 +42,8 @@ For questions, concerns, or support, contact: parallax.moderator@gmail.com
 - **External Services / APIs** Google's Generative Language API (LLMs), OpenAI's moderation API planned (safety checks)
 - **Tooling:** Vitest
 
+*THIS STACK IS OUT OF DATE FOR THE WEB-MIGRATION BRANCH. I'm shifting to a web architecture running express.js on the backend, a Redis database, and a React UI for human moderators in interact with the policy evaluation engine.
+
 ---
 
 ## Roadmap
@@ -56,6 +58,7 @@ For questions, concerns, or support, contact: parallax.moderator@gmail.com
 - Better documentation -> Launch to public
 
 *Infrastructure, features, or dead code for this exists in the repository already
+
 **minor planned improvements and far-future plans not included
 
 # Getting Started / Documentation
