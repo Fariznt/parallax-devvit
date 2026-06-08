@@ -1,4 +1,4 @@
-import { EvaluationResult } from "../PolicyEngine/handlers/types.js";
+import { EvaluationResult } from "./PolicyEngine/handlers/types.js";
 import { TriggerContext } from "@devvit/public-api";
 
 /**

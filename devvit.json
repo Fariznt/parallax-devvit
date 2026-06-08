@@ -9,10 +9,10 @@
     "entrypoints": {
       "default": {
         "inline": true,
-        "entry": "splash.html"
+        "entry": "inline.html"
       },
-      "game": {
-        "entry": "game.html"
+      "main": {
+        "entry": "main.html"
       }
     }
   },
@@ -35,6 +35,8 @@
     ]
   },
   "triggers": {
-    "onAppInstall": "/internal/on-app-install"
+    "onAppInstall": "/internal/on-app-install",
+    "onCommentCreate": "/internal/on-comment-create",
+    "onPostCreate": "/internal/on-post-create"
   }
 }

@@ -1,5 +1,5 @@
 import type { TriggerContext } from "@devvit/public-api";
-import type { SeverityActionMap } from "../types.js"
+import type { SeverityActionMap } from "./types.js"
 import { modmailErr } from "./action-functions.js";
 
 const ACTIONS = new Set([
@@ -117,6 +117,16 @@ export async function loadEarlyExitFromSettings(
     throw new Error('Setting "earlyExit" must be a boolean');
   }
   return earlyExit
+}
+
+export async function loadIgnoreFailuresFromSettings(
+  context: TriggerContext
+): Promise<boolean> {
+  const ignoreFailures = await context.settings.get("ignoreFailures");
+  if (typeof ignoreFailures !== "boolean") {
+    return false;
+  }
+  return ignoreFailures;
 }
 
 export async function loadKeyFromSettings(

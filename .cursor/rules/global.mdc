@@ -4,13 +4,14 @@ globs:
 alwaysApply: true
 ---
 
-When building these experiences, people will refer to the "devvit app" ([/src/devvit](mdc:src/devvit)) and "client" ([/src/client](mdc:src/client)).
+When building these experiences, people will refer to the "service" ([/src/service](mdc:src/service)) and "client" ([/src/client](mdc:src/client)).
 
 Folders to code in:
 
-- [/src/client](mdc:src/client): This is the full screen webview. To persist data and access the server, call `fetch(/my/api/endpoint)`. This is how you get access to the APIs you write in [/src/server](mdc:src/server).
-- [/src/server](mdc:src/server): This is a serverless backend written in Node. This is where you can access redis and save data.
-- [/src/shared](mdc:src/shared): This is where you can place code that is to be shared between the devvit app, client, and server and the webview. It's a great place for shared types.
+- [/src/service](mdc:src/service): Devvit blocks entry — event triggers (CommentCreate, PostCreate), settings, PolicyEngine. Runs via `devvit.json` `blocks.entry`.
+- [/src/client](mdc:src/client): React webview (inline + main entrypoints). Call `fetch('/api/...')` to reach [/src/server](mdc:src/server).
+- [/src/server](mdc:src/server): Express serverless backend. Redis, Reddit API, `/api/*` routes, `/internal/*` menu/trigger handlers.
+- [/src/shared](mdc:src/shared): Types shared between client and server.
 
 Rules:
 

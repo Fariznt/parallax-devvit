@@ -9,8 +9,16 @@ To address all issues (including breaking changes), run:
 Run `npm audit` for details.
 
 
+cleanup and basic functionality changes. launch to subreddit
+  retry after fail. make sure working on izlam still. make sure a UI post can be made
+identify and classify what everything is about (take notes here)
+  nvm, have cursor just label the file
 
-dont forget to remove shared from tsconfig
+setup mod-only view functionality somehow
+remove garbage components and structure the app as it should be:
+  -client <-> server communication only for the purpose of accessing database knowledge and removal
+  -hook up main.ts using new function to server to save traces, and duplicate modmail information into redis database
+with minimal version of the above done, build basic react stream of posts tha loads from redis->server->client
 UI/web migration
 
 
@@ -60,15 +68,17 @@ and/or more evaluation modes like cross-content batching, 0 batching
 25. errors are spammed to modmail. problematic for repeated issues. will be fixable once there is a database for caching errors
 26. allow next check in combinators? is it necessary? if so, need to code it in. otherwise,
 validator should explicitly prevent it
-27. something might be wrong with addressing like "its ok to be gay" evaluated by izlanimemes
 28. reportrs routing to llm
 29. use npm-check-updates to update dependencies
+30. retry failures + at least send corresponding comment to modmail with the error
 
 gassing up the project for resume. things i dont want to forget:
 -Tested for context awareness (thread history)
 -Tested for resistance against prompt injection
 -Can represent any boolean expression over modular predicates
 -vite build tool and testing
+-i can claim "migration to web architecture + React UI for human moderators underway 
+(see repo web-migration branch)" or smth like that
 
 notes for me:
 devvit settings set apiKey for setting apiKey
@@ -78,7 +88,6 @@ severity will be the closest upstream severity defined
 Tool	Category
 Vite	build tool / bundler / dev server
 React	UI library
-Next.js	web framework
 Express	backend web framework
 
 figure out what im going to do in terms of tree representation. if decide against batch processing need to indicate in my architecture files
@@ -167,3 +176,135 @@ menu item
  
 //   },
 // });
+
+{
+  "all_of": [
+    {
+      "match_check": {
+        "blacklist": true,
+        "patterns": [
+          "\\b9\\b",
+          "\\b(?:allah|allaah|alah|alaah|illah|ilah|illaah|ilaah|god|goddess|\\uFDF2|ﷲ)\\b",
+          "\\b(?:m[ou]h?a?mm?ad|moh?am+ed|muham+ed|mohd|muhd|mehm?ed|mehm|muham|moham|mohammad|muhammad|muhammed|mohammed|muhamad|mohamad|محمد|محمّد|محمود)\\b",
+          "\\b(?:qur'?a?n|qur|koran|qoran|coran|قرآن|القرآن)\\b",
+          "\\b(?:nuh|noah|نوح|ibrah?i+m|abraham|ابراهيم|إبراهيم|isa|eesa|jesus|عيسى|musa|moses|موسى)\\b",
+          "\\b(?:adam|آدم|idr[ie]s|إدريس|hud|هود|salih|saleh|صالح|lut|lot|لوط|ismail|isma[ei]l|ishmael|إسماعيل|ishaq|isaac|إسحاق|yaqub|jacob|يعقوب|yusuf|yousef|joseph|يوسف|shuayb|shuaib|شعيب|ayyub|job|أيوب|dawud|david|داود|sulayman|solomon|سليمان|ilyas|elijah|إلياس|alyasa|alisa|اليسع|dhul\\s?kifl|ذو\\s?الكفل|yunus|jonah|يونس|zakariy?a|zechariah|زكريا|yahya|john|يحيى)\\b",
+          "(?:apost|goat|mahdi|salah|salaah|brother|sister|guide|brozzer|sizter)",
+          "(?:homophob|gay|transphob|antisemit|bigot|zealot|sky\\s?daddy|skydaddy|pedo|paedo|sexis|misogyn|fundamentali|wahhab|wahab|salafi|piss|terror|barbar|mudslim|mooselim|warlord|aloha|boom|bomb|explode)",
+          "(?:flat\\s*-?\\s*earth(?:er)?|muddy\\s*(?:spring|water)|murky\\s*(?:spring|water)|sun\\s*(?:sets?|setting)\\s*(?:in|into)\\s*(?:a\\s*)?(?:muddy\\s*)?(?:spring|water)|split\\s*(?:the\\s*)?moon|moon\\s*split|camel\\s*urine|urine\\s*(?:of\\s*)?(?:a\\s*)?camel|backbone\\s*(?:and\\s*)?rib(?:s)?|wife\\s*beating|child\\s*bride|(?:aisha\\s*)?9\\s*(?:years?)?\\s*old|pedo\\s*prophet|violent\\s*qur(?:an|aan)|barbaric\\s*islam|primitive|72\\s*(?:virgins?|houris?|houri))"
+        ],
+        "flags": "i"
+      },
+      "next_check": {
+        "all_of": [
+          {
+            "not": {
+              "name": "transgression/blasphemy",
+              "severity": 1,
+              "semantic_check": {
+                "condition": "disrespects Allah OR disrespects the Quran OR disrespects a prophet of Islam, OR otherwise transgresses in a way that would be considered blasphemous in Islam."
+              }
+            }
+          },
+          {
+            "not":{
+            "name": "command good, forbid evil",
+            "severity": 1,
+              "semantic_check": {
+                "condition": "promotes, normalizes, or trivializes any belief or action that goes against the Quran, sunnah, or the ijma of Ahlus Sunnah Wal Jama'ah"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Aisha mentioned",
+      "severity": 0,
+      "match_check": {
+        "blacklist": true,
+        "patterns": ["\\b(?:a+ish?a|a+ys?h?a|ayesha|aesha|aishah|aysha|\\u0639\\u0627\\u0626\\u0634\\u0629|عائشة)\\b"],
+        "flags": "i"
+      },
+      "next_check": {
+        "not": {
+          "name": "Aisha insult",
+          "severity": 1,
+          "semantic_check": {
+            "condition": "mentions or hints at Muhammad's wife Aisha in order to explicitly or implicitly insult or accuse Muhammad of any wrongdoing, including mentioning Aisha's age when not relevant."
+          }
+        }
+      }
+    }
+  ]
+}
+
+this is a removal test pattern. we say this for testing
+{
+  "all_of": [
+    {
+      "match_check": {
+        "blacklist": true,
+        "patterns": ["this is a removal test pattern. we say this for testing"],
+        "flags": "i"
+      }
+    },
+    {
+      "match_check": {
+        "blacklist": true,
+        "patterns": [
+          "\\b9\\b",
+          "\\b(?:allah|allaah|alah|alaah|illah|ilah|illaah|ilaah|god|goddess|\\uFDF2|ﷲ)\\b",
+          "\\b(?:m[ou]h?a?mm?ad|moh?am+ed|muham+ed|mohd|muhd|mehm?ed|mehm|muham|moham|mohammad|muhammad|muhammed|mohammed|muhamad|mohamad|محمد|محمّد|محمود)\\b",
+          "\\b(?:qur'?a?n|qur|koran|qoran|coran|قرآن|القرآن)\\b",
+          "\\b(?:nuh|noah|نوح|ibrah?i+m|abraham|ابراهيم|إبراهيم|isa|eesa|jesus|عيسى|musa|moses|موسى)\\b",
+          "\\b(?:adam|آدم|idr[ie]s|إدريس|hud|هود|salih|saleh|صالح|lut|lot|لوط|ismail|isma[ei]l|ishmael|إسماعيل|ishaq|isaac|إسحاق|yaqub|jacob|يعقوب|yusuf|yousef|joseph|يوسف|shuayb|shuaib|شعيب|ayyub|job|أيوب|dawud|david|داود|sulayman|solomon|سليمان|ilyas|elijah|إلياس|alyasa|alisa|اليسع|dhul\\s?kifl|ذو\\s?الكفل|yunus|jonah|يونس|zakariy?a|zechariah|زكريا|yahya|john|يحيى)\\b",
+          "(?:apost|goat|mahdi|salah|salaah|brother|sister|guide|brozzer|sizter)",
+          "(?:homophob|gay|transphob|antisemit|bigot|zealot|sky\\s?daddy|skydaddy|pedo|paedo|sexis|misogyn|fundamentali|wahhab|wahab|salafi|piss|terror|barbar|mudslim|mooselim|warlord|aloha|boom|bomb|explode)",
+          "(?:flat\\s*-?\\s*earth(?:er)?|muddy\\s*(?:spring|water)|murky\\s*(?:spring|water)|sun\\s*(?:sets?|setting)\\s*(?:in|into)\\s*(?:a\\s*)?(?:muddy\\s*)?(?:spring|water)|split\\s*(?:the\\s*)?moon|moon\\s*split|camel\\s*urine|urine\\s*(?:of\\s*)?(?:a\\s*)?camel|backbone\\s*(?:and\\s*)?rib(?:s)?|wife\\s*beating|child\\s*bride|(?:aisha\\s*)?9\\s*(?:years?)?\\s*old|pedo\\s*prophet|violent\\s*qur(?:an|aan)|barbaric\\s*islam|primitive|72\\s*(?:virgins?|houris?|houri))"
+        ],
+        "flags": "i"
+      },
+      "next_check": {
+        "all_of": [
+          {
+            "not": {
+              "name": "transgression/blasphemy",
+              "severity": 1,
+              "semantic_check": {
+                "condition": "disrespects Allah OR disrespects the Quran OR disrespects a prophet of Islam, OR otherwise transgresses in a way that would be considered blasphemous in Islam."
+              }
+            }
+          },
+          {
+            "not":{
+            "name": "command good, forbid evil",
+            "severity": 1,
+              "semantic_check": {
+                "condition": "promotes, normalizes, or trivializes any belief or action that goes against the Quran, sunnah, or the ijma of Ahlus Sunnah Wal Jama'ah"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Aisha mentioned",
+      "severity": 0,
+      "match_check": {
+        "blacklist": true,
+        "patterns": ["\\b(?:a+ish?a|a+ys?h?a|ayesha|aesha|aishah|aysha|\\u0639\\u0627\\u0626\\u0634\\u0629|عائشة)\\b"],
+        "flags": "i"
+      },
+      "next_check": {
+        "not": {
+          "name": "Aisha insult",
+          "severity": 1,
+          "semantic_check": {
+            "condition": "mentions or hints at Muhammad's wife Aisha in order to explicitly or implicitly insult or accuse Muhammad of any wrongdoing, including mentioning Aisha's age when not relevant."
+          }
+        }
+      }
+    }
+  ]
+}

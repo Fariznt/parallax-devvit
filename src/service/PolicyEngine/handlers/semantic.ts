@@ -154,7 +154,11 @@ async function fetchLLMResponse(
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`API error ${response.status}: ${errText}`);
+      const error = new Error(`API error ${response.status}: ${errText}`) as Error & {
+        status: number;
+      };
+      error.status = response.status;
+      throw error;
     }
 
     const data = await response.json();

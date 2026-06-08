@@ -96,13 +96,14 @@ export const actionFunctions: Record<string, ActionFunction> = {
  */
 export async function modmailErr(
   context: TriggerContext,
-  errorMessage: string
+  errorMessage: string,
+  subject = "Policy-Agent Error"
 ): Promise<void> {
   console.log("Sending error to modmail:\n", errorMessage);
   await context.reddit.modMail.createConversation({
     body: errorMessage,
     subredditName: context.subredditName!,
-    subject: "Policy-Agent Error",
+    subject: subject,
     to: null // i.e. internal moderator conversation
   });
 }

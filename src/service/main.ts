@@ -3,6 +3,7 @@ import { PolicyEngine }  from "./PolicyEngine/engine.js";
 import { 
   loadActionMapFromSettings, 
   loadEarlyExitFromSettings, 
+  loadIgnoreFailuresFromSettings,
   loadKeyFromSettings, 
   loadPolicyFromSettings, 
 } from "./settings-loader.js";
@@ -61,6 +62,13 @@ Devvit.addSettings([
   {
     name: "enabled",
     label: "Enable Policy Agent",
+    type: "boolean",
+    defaultValue: false,
+    scope: 'installation',
+  },
+  {
+    name: "ignoreFailures",
+    label: "Ignore Evaluation Failures",
     type: "boolean",
     defaultValue: false,
     scope: 'installation',
@@ -176,13 +184,15 @@ async function safeEvaluate(
     contentInfo, 
     contextList, 
     apiKey, 
-    doEarlyExit  
+    doEarlyExit,
+    ignoreFailures,
   }: {
     context: TriggerContext,
     contentInfo: ContentInfo, 
     contextList?: string[], 
     apiKey: string, 
-    doEarlyExit: boolean 
+    doEarlyExit: boolean,
+    ignoreFailures: boolean,
   }
 ): Promise<EvaluationResult | null> {
   try {
@@ -203,21 +213,39 @@ async function safeEvaluate(
     }
     return result;
   } catch (err: unknown) {
-    // In case of failure, send informative error to modmail.
-    let message = "Unknown error";
+    const message =
+      err instanceof Error ? err.message : typeof err === "string" ? err : "Unknown error";
+    const status =
+      err instanceof Error && "status" in err && typeof err.status === "number"
+        ? err.status
+        : null;
 
-    if (err instanceof Error) {
-      message = err.message;
-    } else if (typeof err === "string") {
-      message = err;
+    if (status === 503) {
+      console.warn(
+        `LLM unavailable (503) while evaluating ${contentInfo.type} at ${contentInfo.link}`
+      );
+      if (!ignoreFailures) {
+        const link = contentInfo.link ?? "<link could not be obtained>";
+        await modmailErr(
+          context,
+          `This ${contentInfo.type} could not be automatically evaluated because the LLM service is temporarily unavailable due to high server load.
+        Please review it manually:
+        ${link}`,
+        "Unable to evaluate: manual review needed"
+        );
+      }
+      return null;
     }
-    await modmailErr(context,
-    `An error occurred trying to evaluate the ${contentInfo.type} at:
+
+    // In case of failure, send informative error to modmail.
+    await modmailErr(
+      context,
+      `An error occurred trying to evaluate the ${contentInfo.type} at:
     ${contentInfo.link}
     If settings were recently changed, this could be a syntax error in your policy definition.
     If the error seems unexpected, contact parallax.moderator@gmail.com.
     Error: ${message}`
-    )
+    );
     return null
   }
 }
@@ -241,13 +269,15 @@ async function handleCommentCreate(
   
   const apiKey = await loadKeyFromSettings(context);
   const earlyExit = await loadEarlyExitFromSettings(context);
+  const ignoreFailures = await loadIgnoreFailuresFromSettings(context);
 
   const result: EvaluationResult | null = await safeEvaluate({
     context: context,
     contentInfo: commentInfo, 
     contextList: commentThread, 
     apiKey: apiKey, 
-    doEarlyExit: earlyExit
+    doEarlyExit: earlyExit,
+    ignoreFailures: ignoreFailures,
   })
 
   if (result) {
@@ -304,12 +334,14 @@ async function handlePostCreate(
   }
 
   const apiKey = await loadKeyFromSettings(context);
-  const earlyExit = await loadEarlyExitFromSettings(context)
+  const earlyExit = await loadEarlyExitFromSettings(context);
+  const ignoreFailures = await loadIgnoreFailuresFromSettings(context);
   const result: EvaluationResult | null = await safeEvaluate({
     context: context,
     contentInfo: postInfo, 
     apiKey: apiKey, 
-    doEarlyExit: earlyExit
+    doEarlyExit: earlyExit,
+    ignoreFailures: ignoreFailures,
   })
 
   if (result) {

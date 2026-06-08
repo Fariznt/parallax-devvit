@@ -3,4 +3,14 @@ task_stack.txt
 examples
 .env
 **/.env
+.yarn
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+webroot
 dist
+# not even sure if im gonna use this.. was part of the react template i ported
+.kiro
