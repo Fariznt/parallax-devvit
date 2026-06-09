@@ -1,6 +1,9 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "policy-agent",
+  "permissions": {
+    "redis": true
+  },
   "blocks": {
     "entry": "src/service/main.ts"
   },
@@ -26,8 +29,8 @@
   "menu": {
     "items": [
       {
-        "label": "Create Policy Agent Moderation Webview",
-        "description": "Moderation Webview",
+        "label": "Moderation Webview",
+        "description": "Creates or opens existing moderation webview",
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/post-create"

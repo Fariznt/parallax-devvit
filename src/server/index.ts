@@ -1,10 +1,11 @@
 import express from 'express';
-import type { Placeholder } from '../shared/types/api';
-import { createServer, context, getServerPort } from '@devvit/web/server';
-import { handleOnAppInstall } from './triggers/on-app-install';
-import { handleOnCommentCreate } from './triggers/on-comment-create';
-import { handleOnPostCreate } from './triggers/on-post-create';
-import { handleMenuPostCreate } from './triggers/menu-post-create';
+import type { InitResponse } from '../shared/types/api';
+import { createServer, getServerPort } from '@devvit/web/server';
+import { getCurrentUsername, isCurrentUserModerator } from './auth';
+import { handleOnAppInstall } from './handlers/on-app-install';
+import { handleOnCommentCreate } from './handlers/on-comment-create';
+import { handleOnPostCreate } from './handlers/on-post-create';
+import { handleMenuPostCreate } from './handlers/menu-post-create';
 
 const app = express();
 
@@ -16,17 +17,12 @@ const router = express.Router();
 
 // Public API routes — called from the client via fetch('/api/...').
 router.get('/api/init', async (_req, res): Promise<void> => {
-  const { postId } = context;
+  const username = await getCurrentUsername();
 
-  if (!postId) {
-    res.status(400).json({
-      status: 'error',
-      message: 'postId is required but missing from context',
-    });
-    return;
-  }
-
-  const body: Placeholder = { type: 'placeholder' };
+  const body: InitResponse = {
+    username,
+    isModerator: await isCurrentUserModerator(username),
+  };
   res.json(body);
 });
 

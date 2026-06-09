@@ -16,6 +16,7 @@ import type { SeverityActionMap, ContentInfo } from "./types.js";
 Devvit.configure({
   redditAPI: true,
   http: true,
+  redis: true,
 });
 
 Devvit.addSettings([

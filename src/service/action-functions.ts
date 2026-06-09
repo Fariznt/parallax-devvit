@@ -31,6 +31,7 @@ const sendModmail: ActionFunction = async (
   }
   body += "\`\`\`";
 
+  console.log("sending modmail:\n" + body)
   await context.reddit.modMail.createConversation({
     body: body,
     subredditName: context.subredditName!,

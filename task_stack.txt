@@ -9,12 +9,8 @@ To address all issues (including breaking changes), run:
 Run `npm audit` for details.
 
 
-cleanup and basic functionality changes. launch to subreddit
-  retry after fail. make sure working on izlam still. make sure a UI post can be made
-identify and classify what everything is about (take notes here)
-  nvm, have cursor just label the file
-
-setup mod-only view functionality somehow
+get redis setup and verify the button for linking to modqueue pattern as soon as possible (conditional creation thing)
+launch to subreddit? for the gemini limiting fix.
 remove garbage components and structure the app as it should be:
   -client <-> server communication only for the purpose of accessing database knowledge and removal
   -hook up main.ts using new function to server to save traces, and duplicate modmail information into redis database
@@ -245,9 +241,10 @@ this is a removal test pattern. we say this for testing
     {
       "match_check": {
         "blacklist": true,
-        "patterns": ["this is a removal test pattern. we say this for testing"],
+        "patterns": ["testpattern"],
         "flags": "i"
-      }
+      },
+      "severity": 1
     },
     {
       "match_check": {
