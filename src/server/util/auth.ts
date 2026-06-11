@@ -10,7 +10,7 @@ export const isCurrentUserModerator = async (username?: string | null): Promise<
   const viewerUsername = username ?? (await getCurrentUsername());
 
   if (!subredditName || !viewerUsername) {
-    return false;
+    return false; // assume false if fail to get context---unusual/suspicious case
   }
 
   try {

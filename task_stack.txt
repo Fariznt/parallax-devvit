@@ -9,8 +9,11 @@ To address all issues (including breaking changes), run:
 Run `npm audit` for details.
 
 
-get redis setup and verify the button for linking to modqueue pattern as soon as possible (conditional creation thing)
-launch to subreddit? for the gemini limiting fix.
+commit:
+
+
+
+launch to subreddit? for the gemini limiting fix. with temp stuff
 remove garbage components and structure the app as it should be:
   -client <-> server communication only for the purpose of accessing database knowledge and removal
   -hook up main.ts using new function to server to save traces, and duplicate modmail information into redis database
@@ -52,7 +55,7 @@ Future
 16. consider capping deferred checks such that past a threshold its split
 and/or more evaluation modes like cross-content batching, 0 batching
 17. support for how hard to think and maybe some sort of modding history testing pipeline
-18. llm throttling
+18. llm throttling if scaling to other subs
 19. use menuitem as on/off button
 20. custom number of days banned
 21. dealing with bogus reports

@@ -18,8 +18,11 @@
     "handlers/**/*.ts",
     "vite.config.ts",
     "**/*.json",
-    "../../package.json"
-, "auth.ts"  ],
+    "../../package.json",
+    "util/auth.ts",
+    "util/database.ts",
+    "util/util.ts"
+  ],
   "exclude": ["**/*.test.ts"],
   "references": [{ "path": "../shared" }]
 }

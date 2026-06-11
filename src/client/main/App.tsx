@@ -17,7 +17,7 @@
 export const App = () => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4">
-      <p className="text-center text-gray-600">Main view — edit src/client/main/App.tsx</p>
+      <p className="text-center text-gray-600">src/client/main/App.tsx is under development.</p>
     </div>
   );
 };
