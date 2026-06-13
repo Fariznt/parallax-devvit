@@ -1,12 +1,12 @@
 import type { Request, Response } from 'express';
 import type { OnPostCreateRequest, TriggerResponse } from '@devvit/web/shared';
 import type { ContentData } from '../util/database';
-import { storePostRecord } from '../util/database';
+import { deleteOldestRecords, isRedisQuotaError, storePostRecord } from '../util/database';
 import { normalizeTimestamp, toRedditUrl } from '../util/util';
+import { context } from '@devvit/server'; // temporary import for testing
 
-function getPostImageUrl(post: OnPostCreateRequest['post']): string | undefined {
-  return post?.mediaUrls?.[0] ?? post?.media?.oembed?.thumbnailUrl ?? undefined;
-}
+const STORE_RETRY_ATTEMPTS = 3;
+const EVIC_RECORDS_COUNT = 10;
 
 /**
  * Devvit Web trigger: onPostCreate -> /internal/on-post-create
@@ -16,6 +16,7 @@ export async function handleOnPostCreate(
   req: Request<Record<string, never>, TriggerResponse, OnPostCreateRequest>,
   res: Response<TriggerResponse>
 ): Promise<void> {
+  console.log('[handleOnPostCreate] handling post create event');
   const { author, post } = req.body;
 
   if (!post) {
@@ -23,6 +24,13 @@ export async function handleOnPostCreate(
     res.status(200).json({});
     return;
   }
+  
+  // Skip processing for mod team
+  if (author?.name === context.subredditName + "-ModTeam" 
+    || author?.name === "policy-agent") {
+      res.status(200).json({});
+      return;
+    }
 
   try {
     const data: ContentData = {
@@ -31,14 +39,20 @@ export async function handleOnPostCreate(
       url: toRedditUrl(post.permalink || post.url),
       username: author?.name ?? 'unknown user',
     };
-    const imageUrl = getPostImageUrl(post);
-    if (imageUrl) data.imageUrl = imageUrl;
 
-    await storePostRecord(
-      post.id,
-      data,
-      normalizeTimestamp(post.createdAt)
-    );
+    data.imageUrl = post.url ?? null;
+
+    const sortAt = normalizeTimestamp(post.createdAt);
+    console.log(`[onPostCreate] storing post id="${post.id}" permalink="${post.permalink}"`);
+    for (let attempt = 0; attempt < STORE_RETRY_ATTEMPTS; attempt++) {
+      try {
+        await storePostRecord(post.id, data, sortAt);
+        break;
+      } catch (error) {
+        if (!isRedisQuotaError(error) || attempt === STORE_RETRY_ATTEMPTS - 1) throw error;
+        if ((await deleteOldestRecords(EVIC_RECORDS_COUNT)) === 0) throw error;
+      }
+    }
 
     res.status(200).json({});
   } catch (error) {

@@ -8,3 +8,13 @@ Guidelines:
 - You cannot use websockets. Call devvit_search and query for "realtime" to get more information
 - Obey the rules of hooks and only write valid React code
 
+## Visual feedback loop (no Reddit account required)
+
+After meaningful UI changes under `src/client/`, run `npm run ui:capture` and read the PNGs in `src/client/Agent-UI-Viewer/screenshots/` (see `manifest.json` for paths/viewports). Iterate on layout until the screenshots match the spec.
+
+- `npm run dev:ui` — mock API + Vite preview (manual browser at `http://127.0.0.1:7474/inline.html` or `main.html`)
+- `npm run ui:capture` — headless Chromium screenshots via Playwright
+- `MOCK_SCENARIO=nonmod|empty|mod` — fixture scenario for mock API
+- Mock fixtures: `src/client/Agent-UI-Viewer/fixtures.mjs`
+- Local dev stubs `@devvit/web/client` via `src/client/Agent-UI-Viewer/stub-devvit-client.ts` (Vite serve only; production build uses the real package)
+

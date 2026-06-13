@@ -8,7 +8,7 @@ export type ContentData = {
   url: string;
   // for posts only
   title?: string; 
-  imageUrl?: string;
+  imageUrl?: string | null;
   // for comments only
   parentPostTitle?: string;
 };
@@ -22,6 +22,12 @@ export type StoredRecord = {
 
 const RECORD_KEY_PREFIX = 'content-item';
 const RECORD_INDEX_KEY = `${RECORD_KEY_PREFIX}:index`;
+
+/** Checks if the error is a Redis quota error, which would warrant eviction of old records */
+export function isRedisQuotaError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /quota|limit|storage|full|exceeded/i.test(message);
+}
 
 /** Stores a record and indexes its id by timestamp. */
 async function storeRecord(

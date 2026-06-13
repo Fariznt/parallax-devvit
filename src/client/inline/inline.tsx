@@ -35,29 +35,27 @@ const Inline = () => {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 p-4">
-      <img className="object-contain w-1/2 max-w-[250px] mx-auto" src="/snoo.png" alt="Snoo" />
+      <img className="mx-auto w-1/2 max-w-[250px] object-contain" src="/snoo.png" alt="Snoo" />
       <div className="flex flex-col items-center gap-2">
-        <h1 className="text-center text-2xl font-bold text-gray-900">
+        <h1 className="text-center text-2xl font-bold text-rd-text-primary">
           Hey {username ?? 'there'} 👋
         </h1>
         {viewer.status === 'loading' ? (
-          <p className="text-center text-base text-gray-600">Loading...</p>
+          <p className="text-center text-base text-rd-text-secondary">Loading...</p>
         ) : null}
-        {(viewer.status === 'ready' && !viewer.data.isModerator) ||viewer.status === 'error' ? (
-          <p className="text-center text-base text-gray-600">
+        {(viewer.status === 'ready' && !viewer.data.isModerator) || viewer.status === 'error' ? (
+          <p className="text-center text-base text-rd-text-secondary">
             Thanks for stopping by. This interactive post is only viewable for the moderation team.
-            Please feel free to ignore! 
-            </p>
+            Please feel free to ignore!
+          </p>
         ) : null}
         {viewer.status === 'ready' && viewer.data.isModerator ? (
           <>
-            <p className="text-center text-base text-gray-600">
-              {/* The custom modqueue webview is ready for use. */}
-              Hey there! The custom modqueue webview is still under development.
-              It will be available in a future update.
+            <p className="text-center text-base text-rd-text-secondary">
+              The custom modqueue is ready for review.
             </p>
             <button
-              className="mt-5 flex h-10 w-auto cursor-pointer items-center justify-center rounded-full bg-[#d93900] px-4 text-white transition-colors"
+              className="mt-5 flex h-10 w-auto cursor-pointer items-center justify-center rounded-full bg-rd-cta px-4 text-white transition-colors hover:bg-rd-cta-hover"
               onClick={(e) => requestExpandedMode(e.nativeEvent, 'main')}
             >
               Open modqueue

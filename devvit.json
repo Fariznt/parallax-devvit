@@ -2,7 +2,13 @@
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "policy-agent",
   "permissions": {
-    "redis": true
+    "redis": true,
+    "http": {
+      "enable": true,
+      "domains": [
+        "preview.redd.it"
+      ]
+    }
   },
   "blocks": {
     "entry": "src/service/main.ts"
@@ -40,6 +46,7 @@
   "triggers": {
     "onAppInstall": "/internal/on-app-install",
     "onCommentCreate": "/internal/on-comment-create",
-    "onPostCreate": "/internal/on-post-create"
+    "onPostCreate": "/internal/on-post-create",
+    "onModAction": "/internal/on-mod-action"
   }
 }

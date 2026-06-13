@@ -6,5 +6,6 @@ export async function handleOnAppInstall(
   _req: Request<Record<string, never>, TriggerResponse, OnAppInstallRequest>,
   res: Response<TriggerResponse>
 ): Promise<void> {
+  console.log('[handleOnAppInstall] handling app install event');
   res.status(200).json({ status: 'ok' });
 }

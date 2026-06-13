@@ -1,1 +1,114 @@
 @import 'tailwindcss';
+
+/* theme tokens — light */
+:root {
+  /* page background */
+  --rd-bg:                #f3f4f6;
+  /* card / elevated surface */
+  --rd-surface:           #ffffff;
+  /* borders, dividers */
+  --rd-border:            #e5e7eb;
+
+  /* primary body text */
+  --rd-text-primary:      #111827;
+  /* secondary labels, descriptions */
+  --rd-text-secondary:    #6b7280;
+  /* timestamps, hints */
+  --rd-text-muted:        #9ca3af;
+  /* error messages */
+  --rd-text-error:        #dc2626;
+
+  /* error card background */
+  --rd-error-surface:     #fef2f2;
+  /* error card border */
+  --rd-error-border:      #fca5a5;
+
+  /* post badge background */
+  --rd-badge-post-bg:     #dbeafe;
+  /* post badge text */
+  --rd-badge-post-fg:     #1d4ed8;
+  /* comment badge background */
+  --rd-badge-cmnt-bg:     #f3e8ff;
+  /* comment badge text */
+  --rd-badge-cmnt-fg:     #7e22ce;
+
+  /* approve button background */
+  --rd-approve-bg:        #f0fdf4;
+  /* approve button icon */
+  --rd-approve-fg:        #16a34a;
+  /* approve button hover */
+  --rd-approve-hover:     #dcfce7;
+
+  /* image placeholder */
+  --rd-image-bg:          #f3f4f6;
+  /* spinner ring track */
+  --rd-spinner-track:     #e5e7eb;
+
+  /* primary button */
+  --rd-cta:               #d93900;
+  /* primary button hover */
+  --rd-cta-hover:         #c23400;
+
+  color-scheme: light dark;
+}
+
+/* theme tokens — dark */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --rd-bg:                #0c1112;
+    --rd-surface:           #16181a;
+    --rd-border:            #343536;
+
+    --rd-text-primary:      #d7dadc;
+    --rd-text-secondary:    #818384;
+    --rd-text-muted:        #6a6d6e;
+    --rd-text-error:        #ff585b;
+
+    --rd-error-surface:     #1e1214;
+    --rd-error-border:      #7f1d1d;
+
+    --rd-badge-post-bg:     #1a2535;
+    --rd-badge-post-fg:     #71a4d4;
+    --rd-badge-cmnt-bg:     #211a30;
+    --rd-badge-cmnt-fg:     #a78fd4;
+
+    --rd-approve-bg:        #1a2b1e;
+    --rd-approve-fg:        #46d160;
+    --rd-approve-hover:     #1e3323;
+
+    --rd-image-bg:          #1a1c1e;
+    --rd-spinner-track:     #343536;
+
+    --rd-cta:               #ff4500;
+    --rd-cta-hover:         #e53d00;
+  }
+}
+
+/* tailwind rd-* color utilities */
+@theme inline {
+  --color-rd-bg:              var(--rd-bg);
+  --color-rd-surface:         var(--rd-surface);
+  --color-rd-border:          var(--rd-border);
+  --color-rd-text-primary:    var(--rd-text-primary);
+  --color-rd-text-secondary:  var(--rd-text-secondary);
+  --color-rd-text-muted:      var(--rd-text-muted);
+  --color-rd-text-error:      var(--rd-text-error);
+  --color-rd-error-surface:   var(--rd-error-surface);
+  --color-rd-error-border:    var(--rd-error-border);
+  --color-rd-badge-post-bg:   var(--rd-badge-post-bg);
+  --color-rd-badge-post-fg:   var(--rd-badge-post-fg);
+  --color-rd-badge-cmnt-bg:   var(--rd-badge-cmnt-bg);
+  --color-rd-badge-cmnt-fg:   var(--rd-badge-cmnt-fg);
+  --color-rd-approve-bg:      var(--rd-approve-bg);
+  --color-rd-approve-fg:      var(--rd-approve-fg);
+  --color-rd-approve-hover:   var(--rd-approve-hover);
+  --color-rd-image-bg:        var(--rd-image-bg);
+  --color-rd-spinner-track:   var(--rd-spinner-track);
+  --color-rd-cta:             var(--rd-cta);
+  --color-rd-cta-hover:       var(--rd-cta-hover);
+}
+
+body {
+  background-color: var(--rd-bg);
+  color: var(--rd-text-primary);
+}

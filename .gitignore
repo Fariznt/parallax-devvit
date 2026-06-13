@@ -14,3 +14,4 @@ webroot
 dist
 # not even sure if im gonna use this.. was part of the react template i ported
 .kiro
+src/client/Agent-UI-Viewer

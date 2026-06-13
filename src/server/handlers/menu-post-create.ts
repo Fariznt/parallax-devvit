@@ -13,6 +13,7 @@ export async function handleMenuPostCreate(
   _req: Request<Record<string, never>, UiResponse | TriggerResponse, MenuItemRequest>,
   res: Response<UiResponse | TriggerResponse>
 ): Promise<void> {
+  console.log('[handleMenuPostCreate] handling menu post create action');
   try {
     const existingPostUrl = await redis.get(MODERATION_WEBVIEW_POST_URL_KEY);
 
