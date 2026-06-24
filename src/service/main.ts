@@ -80,10 +80,8 @@ Devvit.addSettings([
   {
     name: 'remMailOnApprove',
     label: 'Remove Related Modmail On Modqueue Approve',
-    helpText: `For subreddits with modmail automations (ex. using automod to receive reports), 
-    this will archive any modmail post that mentions the url of a post/comment that is removed/approved.\n
-    This is intended to make adoption of the custom modqueue webview easier and to remove redundancy 
-    between this automation tool and others that communicate through modmail.`,
+    helpText: `Removes u/Automoderator or u/policy-agent 
+    modmail related to a post/comment upon its approval/removal.`,
     type: 'boolean',
     defaultValue: false,
     scope: 'installation',

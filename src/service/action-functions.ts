@@ -32,11 +32,10 @@ const sendModmail: ActionFunction = async (
   body += "\`\`\`";
 
   console.log("sending modmail:\n" + body)
-  await context.reddit.modMail.createConversation({
-    body: body,
-    subredditName: context.subredditName!,
+  await context.reddit.modMail.createModInboxConversation({
+    bodyMarkdown: body,
+    subredditId: context.subredditId,
     subject: subject,
-    to: null // i.e. internal moderator conversation
   });
 };
 

@@ -3,6 +3,8 @@ import type { OnModActionRequest, TriggerResponse } from '@devvit/web/shared';
 import { deleteRecord } from '../util/database';
 import { reddit, context, settings } from '@devvit/web/server';
 
+const AUTOMATION_BOTS = new Set(['AutoModerator', 'policy-agent']);
+
 const HANDLED_ACTIONS = new Set([
   'approvelink',    // post approved
   'approvecomment', // comment approved
@@ -33,17 +35,10 @@ async function archiveRelatedModmails(bareId: string): Promise<void> {
         console.warn(`[archiveRelatedModmails] conversation ${id} missing from response map, skipping`);
         continue;
       }
-      console.log(`[archiveRelatedModmails] conversation ${id}:`, JSON.stringify(conv, null, 2));
-      const msgs = Object.values(conv.messages);
-      if (msgs.some((m) => !m.date)) {
-        console.error(`[archiveRelatedModmails] conversation ${id} has message(s) without date, aborting`);
-        return; // abort if any message is missing a date -- this should never happen, but if it does
-        // we don't want to risk archiving a modmail based on
-      }
-      msgs.sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
-      const firstMsg = msgs[0];
-      const bodyMatches = !!firstMsg?.body && firstMsg.body.includes(bareId);
-      if (bodyMatches) {
+      const hasMatchingBotMessage = Object.values(conv.messages).some(
+        (m) => AUTOMATION_BOTS.has(m.author?.name ?? '') && m.body?.includes(bareId)
+      );
+      if (hasMatchingBotMessage) {
         console.log(`[archiveRelatedModmails] archiving conversation ${id} (subject: "${conv.subject}")`);
         const archiveResult = await reddit.modMail.archiveConversation(id);
         console.log(`[archiveRelatedModmails] archiveConversation(${id}) result:`, JSON.stringify(archiveResult, null, 2));
