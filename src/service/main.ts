@@ -42,6 +42,7 @@ Devvit.addSettings([
   {
     name: 'llmURL',
     label: 'LLM Base URL',
+    helpText: 'This is the base url of the LLM API you are using.',
     type: 'string',
     scope: 'installation', 
     defaultValue: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
@@ -56,6 +57,8 @@ Devvit.addSettings([
   {
     name: 'earlyExit',
     label: `Early Exiting in 'all_of'`,
+    helpText: `Early exiting is a feature that allows the policy engine to stop evaluating the policy if it has already found a violation.
+    This is useful for saving on LLM calls and reducing latency, at the cost of incomplete evaluation..`,
     defaultValue: false,
     type: 'boolean',
     scope: 'installation'
@@ -73,7 +76,18 @@ Devvit.addSettings([
     type: "boolean",
     defaultValue: false,
     scope: 'installation',
-  }
+  },
+  {
+    name: 'remMailOnApprove',
+    label: 'Remove Related Modmail On Modqueue Approve',
+    helpText: `For subreddits with modmail automations (ex. using automod to receive reports), 
+    this will archive any modmail post that mentions the url of a post/comment that is removed/approved.\n
+    This is intended to make adoption of the custom modqueue webview easier and to remove redundancy 
+    between this automation tool and others that communicate through modmail.`,
+    type: 'boolean',
+    defaultValue: false,
+    scope: 'installation',
+  },
 ]);
 
 let engine: PolicyEngine | undefined;
@@ -272,6 +286,7 @@ async function handleCommentCreate(
   const earlyExit = await loadEarlyExitFromSettings(context);
   const ignoreFailures = await loadIgnoreFailuresFromSettings(context);
 
+  console.log(`Evaluating comment: ${event.comment?.id}`);
   const result: EvaluationResult | null = await safeEvaluate({
     context: context,
     contentInfo: commentInfo, 
@@ -293,7 +308,7 @@ async function handleCommentCreate(
  */
 Devvit.addTrigger({
   // Fires for new comments, including replies.
-  event: "CommentCreate", // TODO: include posts
+  event: "CommentCreate", 
   onEvent: async (event: TriggerEventType["CommentCreate"], context) => {
     let enabled = await context.settings.get("enabled");
     if (typeof enabled !== "boolean") {
@@ -337,6 +352,7 @@ async function handlePostCreate(
   const apiKey = await loadKeyFromSettings(context);
   const earlyExit = await loadEarlyExitFromSettings(context);
   const ignoreFailures = await loadIgnoreFailuresFromSettings(context);
+  console.log(`Evaluating post: ${event.post?.id}`);
   const result: EvaluationResult | null = await safeEvaluate({
     context: context,
     contentInfo: postInfo, 

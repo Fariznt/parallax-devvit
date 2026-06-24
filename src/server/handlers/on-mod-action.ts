@@ -1,15 +1,61 @@
 import type { Request, Response } from 'express';
 import type { OnModActionRequest, TriggerResponse } from '@devvit/web/shared';
 import { deleteRecord } from '../util/database';
+import { reddit, context, settings } from '@devvit/web/server';
 
 const HANDLED_ACTIONS = new Set([
   'approvelink',    // post approved
   'approvecomment', // comment approved
   'removelink',     // post removed
   'removecomment',  // comment removed
-  'spamlink',       // post marked as spam (also a removal)
-  'spamcomment',    // comment marked as spam (also a removal)
+  // 'spamlink',       // post marked as spam (also a removal)
+  // 'spamcomment',    // comment marked as spam (also a removal)
 ]);
+
+async function archiveRelatedModmails(bareId: string): Promise<void> {
+  console.log(`[archiveRelatedModmails] scanning modmail for content id: ${bareId}`);
+  let after: string | undefined;
+  let page = 0;
+
+  while (true) {
+    page++;
+    const { conversations, conversationIds } = await reddit.modMail.getConversations({
+      subreddits: [context.subredditName],
+      state: 'all',
+      limit: 100,
+      ...(after ? { after } : {}),
+    });
+    console.log(`[archiveRelatedModmails] page ${page}: ${conversationIds.length} conversations`);
+
+    for (const id of conversationIds) {
+      const conv = conversations[id];
+      if (!conv) {
+        console.warn(`[archiveRelatedModmails] conversation ${id} missing from response map, skipping`);
+        continue;
+      }
+      console.log(`[archiveRelatedModmails] conversation ${id}:`, JSON.stringify(conv, null, 2));
+      const msgs = Object.values(conv.messages);
+      if (msgs.some((m) => !m.date)) {
+        console.error(`[archiveRelatedModmails] conversation ${id} has message(s) without date, aborting`);
+        return; // abort if any message is missing a date -- this should never happen, but if it does
+        // we don't want to risk archiving a modmail based on
+      }
+      msgs.sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
+      const firstMsg = msgs[0];
+      const bodyMatches = !!firstMsg?.body && firstMsg.body.includes(bareId);
+      if (bodyMatches) {
+        console.log(`[archiveRelatedModmails] archiving conversation ${id} (subject: "${conv.subject}")`);
+        const archiveResult = await reddit.modMail.archiveConversation(id);
+        console.log(`[archiveRelatedModmails] archiveConversation(${id}) result:`, JSON.stringify(archiveResult, null, 2));
+      }
+    }
+
+    if (conversationIds.length < 100) break;
+    after = conversationIds[conversationIds.length - 1];
+  }
+
+  console.log(`[archiveRelatedModmails] done (${page} page(s) scanned)`);
+}
 
 /**
  * Devvit Web trigger: onModAction -> /internal/on-mod-action
@@ -24,10 +70,11 @@ export async function handleOnModAction(
 ): Promise<void> {
   console.log('[handleOnModAction] handling mod action event');
   const { action, targetPost, targetComment } = req.body;
-  
-  const isPostAction = action === 'approvelink' || action === 'removelink' || action === 'spamlink';
+
+  const isPostAction = action === 'approvelink' || action === 'removelink' //|| action === 'spamlink';
 
   if (!HANDLED_ACTIONS.has(action ?? '')) {
+    console.log(`[onModAction] action="${action}" not handled`);
     res.status(200).json({});
     return;
   }
@@ -42,6 +89,21 @@ export async function handleOnModAction(
 
   try {
     await deleteRecord(id);
+    console.log(`[onModAction] deleted record ${id} successfully`);
+
+
+    const bareId = id.replace(/^t[13]_/, '');
+    const remMailOnApprove = await settings.get<boolean>('remMailOnApprove');
+    if (remMailOnApprove) {
+      try {
+        console.log(`[onModAction] archiving related modmails for ${bareId}`);
+        await archiveRelatedModmails(bareId);
+        console.log(`[onModAction] archived related modmails for ${bareId} successfully`);
+      } catch (error) {
+        console.error('[onModAction] failed to archive related modmails', error);
+      }
+    }
+
     res.status(200).json({});
   } catch (error) {
     console.error('[onModAction] failed to delete record', error);

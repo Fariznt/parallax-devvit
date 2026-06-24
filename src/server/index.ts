@@ -116,6 +116,7 @@ router.post('/api/records/:id/approve', async (req, res): Promise<void> => {
 
     await reddit.approve(approvalId);
     await deleteRecord(record.id);
+
     res.json({ approvedRecordId: record.id, deletedRecordId: record.id });
   } catch (error) {
     console.error('Unable to approve and delete record', error);

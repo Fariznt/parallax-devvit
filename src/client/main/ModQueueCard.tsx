@@ -106,7 +106,9 @@ export const ModQueueCard = ({ record, onApprove, isApproving, hasError }: Props
         </p>
       ) : null}
 
-      {kind === 'post' && data.imageUrl ? (
+      {kind === 'post' &&
+      data.imageUrl &&
+      /\.(jpe?g|png|gif|webp|bmp|avif)(\?|$)/i.test(data.imageUrl) ? (
         <div className="mt-3 w-full rounded-lg bg-rd-image-bg">
           <img
             src={data.imageUrl}
