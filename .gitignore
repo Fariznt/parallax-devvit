@@ -1,5 +1,6 @@
 node_modules
 task_stack.txt
+task_stack
 examples
 .env
 **/.env
