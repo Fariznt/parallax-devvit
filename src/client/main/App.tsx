@@ -128,7 +128,9 @@ export const App = () => {
     });
   }, []);
 
-  const handleApprove = useCallback(async (id: string) => {
+  // Calls the server's handleApprove (src/server/handlers/handle-custom-modqueue-actions.ts),
+  // which approves the content, removes it from the queue, and archives related modmail.
+  const handleApproveClick = useCallback(async (id: string) => {
     setApprovingIds((prev) => new Set([...prev, id]));
 
     try {
@@ -228,7 +230,7 @@ export const App = () => {
                   <div className="pb-3">
                     <ModQueueCard
                       record={record}
-                      onApprove={handleApprove}
+                      onApprove={handleApproveClick}
                       isApproving={approvingIds.has(record.id)}
                       hasError={errorCards.has(record.id)}
                     />

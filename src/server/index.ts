@@ -1,13 +1,13 @@
 import express from 'express';
 import type { InitResponse } from '../shared/types/api';
-import { createServer, getServerPort, reddit } from '@devvit/web/server';
+import { createServer, getServerPort } from '@devvit/web/server';
 import { getCurrentUsername, isCurrentUserModerator } from './util/auth';
-import { deleteRecord, getRecord, getRecordRange, getTotalRecords } from './util/database';
-import type { StoredRecord } from './util/database';
+import { getRecordRange, getTotalRecords } from './util/database';
 import { handleOnAppInstall } from './handlers/on-app-install';
 import { handleOnCommentCreate } from './handlers/on-comment-create';
 import { handleOnPostCreate } from './handlers/on-post-create';
 import { handleOnModAction } from './handlers/on-mod-action';
+import { handleApprove } from './handlers/handle-custom-modqueue-actions';
 import { handleMenuPostCreate } from './handlers/menu-post-create';
 
 const app = express();
@@ -24,20 +24,6 @@ function parseNumber(value: unknown): number | null {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function parseString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() !== '' ? value : null;
-}
-
-function getApprovalId(record: StoredRecord): `t1_${string}` | `t3_${string}` | null {
-  if (record.id.startsWith('t1_') || record.id.startsWith('t3_')) {
-    if (record.kind === 'comment' && record.id.startsWith('t1_')) return record.id as `t1_${string}`;
-    if (record.kind === 'post' && record.id.startsWith('t3_')) return record.id as `t3_${string}`;
-    return null;
-  }
-
-  return record.kind === 'comment' ? `t1_${record.id}` : `t3_${record.id}`;
 }
 
 // Returns the current user's username and moderator status --- used by client to display the correct UI.
@@ -88,41 +74,9 @@ router.get('/api/records/total', async (_req, res): Promise<void> => {
   }
 });
 
-// Approve the corresponding Reddit content, then remove it from the stored review queue.
-router.post('/api/records/:id/approve', async (req, res): Promise<void> => {
-  if (!(await isCurrentUserModerator())) {
-    res.status(403).json({ error: 'Moderator access required' });
-    return;
-  }
-
-  const id = parseString(req.params.id);
-  if (id === null) {
-    res.status(400).json({ error: 'id path param is required and must be a non-empty string' });
-    return;
-  }
-
-  try {
-    const record = await getRecord(id);
-    if (!record) {
-      res.status(404).json({ error: 'Record not found' });
-      return;
-    }
-
-    const approvalId = getApprovalId(record);
-    if (!approvalId) {
-      res.status(500).json({ error: 'Stored record id does not match its content kind' });
-      return;
-    }
-
-    await reddit.approve(approvalId);
-    await deleteRecord(record.id);
-
-    res.json({ approvedRecordId: record.id, deletedRecordId: record.id });
-  } catch (error) {
-    console.error('Unable to approve and delete record', error);
-    res.status(500).json({ error: 'Unable to approve and delete record' });
-  }
-});
+// Approve the corresponding Reddit content, remove it from the stored review queue,
+// and archive any related modmail. See handle-custom-modqueue-actions.ts.
+router.post('/api/records/:id/approve', handleApprove);
 
 // Internal routes --- wired from devvit.json (triggers, menu). Not called via client fetch.
 // These run based on events triggered in Reddit, outside of our webview client
