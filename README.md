@@ -1,4 +1,4 @@
-# Policy-Agent
+# Parallax
 
 ### A high-flexibility, context-aware, semantic-aware decision engine driven by structured, moderator-defined policies for content moderation. 
 
