@@ -155,3 +155,14 @@ menu item
  
 //   },
 // });
+
+
+
+
+UCSD dataset from Wan et al. (ACL 2019): 1.38M book reviews split into 17.7M sentences. trigger words on potential spoilers "dies", "ending", "turns out", "reveals", "twist", "married", "killed", llm check on spoiler. this ones potentially good but quite fuzzy in what counts as a spoiler, and ground truth label quality.
+
+measuring hate speech dataset from uc berkley. could run a general thing, and stratify data by category as well.
+
+covid misinformation dataset from shahan ali memon cmu-miscov19
+
+we need a harness that works with both. we need reasonable subset selection. i think itll be best to start on the likely and easy win of the hate speech one.

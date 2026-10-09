@@ -1,0 +1,12 @@
+{
+  "name": "hostile language",
+  "match_check": {
+    "blacklist": true,
+    "patterns": [
+      "\\b(kill|murder|exterminate|eradicate|genocide|hang|shoot|burn)\\w*\\b",
+      "\\b(vermin|subhuman|animals?|savages?|parasites?|cockroach(es)?|filth|scum|trash|garbage)\\b",
+      "\\b(go back to|deport\\w*|get out of)\\b"
+    ],
+    "flags": "i"
+  }
+}

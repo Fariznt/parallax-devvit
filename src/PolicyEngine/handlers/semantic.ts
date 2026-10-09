@@ -278,7 +278,6 @@ export async function doDeferredChecks(
 
   // Parse and validate
   let parsed: unknown = safeParse(rawResponse, model, baseUrl)
-  console.log("LLM response parsed: \n" + JSON.stringify(parsed))
 
   validateResponseShape(parsed)
 
