@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { context, reddit, settings } from '@devvit/web/server';
-import { deleteRecord, getRecord } from '../util/database';
+import { deleteAllRecords, deleteRecord, getRecord } from '../util/database';
 import type { StoredRecord } from '../util/database';
 import { isCurrentUserModerator } from '../util/auth';
 import { AUTOMATION_BOTS } from './on-mod-action';
@@ -9,7 +9,7 @@ function parseString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value : null;
 }
 
-function getApprovalId(record: StoredRecord): `t1_${string}` | `t3_${string}` | null {
+function getThingId(record: StoredRecord): `t1_${string}` | `t3_${string}` | null {
   if (record.id.startsWith('t1_') || record.id.startsWith('t3_')) {
     if (record.kind === 'comment' && record.id.startsWith('t1_')) return record.id as `t1_${string}`;
     if (record.kind === 'post' && record.id.startsWith('t3_')) return record.id as `t3_${string}`;
@@ -57,6 +57,20 @@ async function archiveRelatedModmails(bareId: string): Promise<void> {
   console.log(`[archiveRelatedModmails] done (${page} page(s) scanned)`);
 }
 
+async function maybeArchiveRelatedModmails(recordId: string, logPrefix: string): Promise<void> {
+  const remMailOnApproveRemove = await settings.get<boolean>('remMailOnApproveRemove');
+  if (!remMailOnApproveRemove) return;
+
+  const bareId = recordId.replace(/^t[13]_/, '');
+  try {
+    console.log(`[${logPrefix}] archiving related modmails for ${bareId}`);
+    await archiveRelatedModmails(bareId);
+    console.log(`[${logPrefix}] archived related modmails for ${bareId} successfully`);
+  } catch (error) {
+    console.error(`[${logPrefix}] failed to archive related modmails`, error);
+  }
+}
+
 /**
  * POST /api/records/:id/approve
  *
@@ -86,32 +100,122 @@ export async function handleApprove(req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const approvalId = getApprovalId(record);
-    if (!approvalId) {
+    const thingId = getThingId(record);
+    if (!thingId) {
       res.status(500).json({ error: 'Stored record id does not match its content kind' });
       return;
     }
 
-    await reddit.approve(approvalId); // approve the content
-    await deleteRecord(record.id); // delete the record from our internal database of posts/comments
+    await reddit.approve(thingId);
+    await deleteRecord(record.id);
     console.log(`[handleApprove] deleted record ${record.id} successfully`);
 
-    // archive related modmails if applicable
-    const bareId = record.id.replace(/^t[13]_/, '');
-    const remMailOnApprove = await settings.get<boolean>('remMailOnApprove');
-    if (remMailOnApprove) {
-      try {
-        console.log(`[handleApprove] archiving related modmails for ${bareId}`);
-        await archiveRelatedModmails(bareId);
-        console.log(`[handleApprove] archived related modmails for ${bareId} successfully`);
-      } catch (error) {
-        console.error('[handleApprove] failed to archive related modmails', error);
-      }
-    }
+    await maybeArchiveRelatedModmails(record.id, 'handleApprove');
 
     res.json({ approvedRecordId: record.id, deletedRecordId: record.id });
   } catch (error) {
     console.error('Unable to approve and delete record', error);
     res.status(500).json({ error: 'Unable to approve and delete record' });
+  }
+}
+
+/**
+ * POST /api/records/:id/dismiss
+ *
+ * Removes an item from the custom review queue only — does not approve/remove
+ * the Reddit content, and does not archive related modmail.
+ */
+export async function handleDismiss(req: Request, res: Response): Promise<void> {
+  if (!(await isCurrentUserModerator())) {
+    res.status(403).json({ error: 'Moderator access required' });
+    return;
+  }
+
+  const id = parseString(req.params.id);
+  if (id === null) {
+    res.status(400).json({ error: 'id path param is required and must be a non-empty string' });
+    return;
+  }
+
+  try {
+    const record = await getRecord(id);
+    if (!record) {
+      res.status(404).json({ error: 'Record not found' });
+      return;
+    }
+
+    await deleteRecord(record.id);
+    console.log(`[handleDismiss] deleted record ${record.id} successfully`);
+
+    res.json({ dismissedRecordId: record.id, deletedRecordId: record.id });
+  } catch (error) {
+    console.error('Unable to dismiss record', error);
+    res.status(500).json({ error: 'Unable to dismiss record' });
+  }
+}
+
+/**
+ * POST /api/records/:id/remove
+ *
+ * Removes the corresponding Reddit content and deletes it from the stored
+ * review queue. Archives related modmail when remMailOnApproveRemove is on.
+ */
+export async function handleRemove(req: Request, res: Response): Promise<void> {
+  if (!(await isCurrentUserModerator())) {
+    res.status(403).json({ error: 'Moderator access required' });
+    return;
+  }
+
+  const id = parseString(req.params.id);
+  if (id === null) {
+    res.status(400).json({ error: 'id path param is required and must be a non-empty string' });
+    return;
+  }
+
+  try {
+    const record = await getRecord(id);
+    if (!record) {
+      res.status(404).json({ error: 'Record not found' });
+      return;
+    }
+
+    const thingId = getThingId(record);
+    if (!thingId) {
+      res.status(500).json({ error: 'Stored record id does not match its content kind' });
+      return;
+    }
+
+    await reddit.remove(thingId, false);
+    await deleteRecord(record.id);
+    console.log(`[handleRemove] deleted record ${record.id} successfully`);
+
+    await maybeArchiveRelatedModmails(record.id, 'handleRemove');
+
+    res.json({ removedRecordId: record.id, deletedRecordId: record.id });
+  } catch (error) {
+    console.error('Unable to remove and delete record', error);
+    res.status(500).json({ error: 'Unable to remove and delete record' });
+  }
+}
+
+/**
+ * POST /api/records/clear
+ *
+ * Clears the entire custom review queue. Does not touch Reddit content or
+ * related modmail threads.
+ */
+export async function handleClearAll(_req: Request, res: Response): Promise<void> {
+  if (!(await isCurrentUserModerator())) {
+    res.status(403).json({ error: 'Moderator access required' });
+    return;
+  }
+
+  try {
+    const deletedCount = await deleteAllRecords();
+    console.log(`[handleClearAll] deleted ${deletedCount} record(s) successfully`);
+    res.json({ deletedCount });
+  } catch (error) {
+    console.error('Unable to clear records', error);
+    res.status(500).json({ error: 'Unable to clear records' });
   }
 }

@@ -4,7 +4,9 @@ import type { StoredRecord } from '../../shared/types/api';
 type Props = {
   record: StoredRecord;
   onApprove: (id: string) => void;
-  isApproving: boolean;
+  onDismiss: (id: string) => void;
+  onRemove: (id: string) => void;
+  busyAction: 'approve' | 'dismiss' | 'remove' | null;
   hasError: boolean;
 };
 
@@ -36,9 +38,52 @@ const CheckIcon = () => (
   </svg>
 );
 
-export const ModQueueCard = ({ record, onApprove, isApproving, hasError }: Props) => {
+const TrashIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    className="h-4 w-4"
+    aria-hidden="true"
+  >
+    <path
+      fillRule="evenodd"
+      d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.784 0 1.569.08 2.35.234v.41a41.612 41.612 0 0 0-4.7 0v-.41A40.098 40.098 0 0 1 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
+      clipRule="evenodd"
+    />
+  </svg>
+);
+
+const XIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    className="h-4 w-4"
+    aria-hidden="true"
+  >
+    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+  </svg>
+);
+
+const Spinner = ({ trackClass, tipClass }: { trackClass: string; tipClass: string }) => (
+  <div className={`h-4 w-4 animate-spin rounded-full border-2 ${trackClass} ${tipClass}`} />
+);
+
+const actionButtonClass =
+  'shrink-0 rounded-full p-2 transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-60';
+
+export const ModQueueCard = ({
+  record,
+  onApprove,
+  onDismiss,
+  onRemove,
+  busyAction,
+  hasError,
+}: Props) => {
   const { id, kind, sortAt, data } = record;
   const contextTitle = kind === 'post' ? data.title : data.parentPostTitle;
+  const isBusy = busyAction !== null;
 
   const handleCardClick = () => {
     navigateTo(data.url);
@@ -47,6 +92,16 @@ export const ModQueueCard = ({ record, onApprove, isApproving, hasError }: Props
   const handleApprove = (e: React.MouseEvent) => {
     e.stopPropagation();
     onApprove(id);
+  };
+
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDismiss(id);
+  };
+
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRemove(id);
   };
 
   return (
@@ -78,18 +133,55 @@ export const ModQueueCard = ({ record, onApprove, isApproving, hasError }: Props
           </span>
         </div>
 
-        <button
-          onClick={handleApprove}
-          disabled={isApproving}
-          aria-label="Approve"
-          className="shrink-0 rounded-full bg-rd-approve-bg p-2 text-rd-approve-fg transition-colors hover:bg-rd-approve-hover active:scale-95 disabled:pointer-events-none disabled:opacity-60"
-        >
-          {isApproving ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-rd-approve-fg/30 border-t-rd-approve-fg" />
-          ) : (
-            <CheckIcon />
-          )}
-        </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            onClick={handleDismiss}
+            disabled={isBusy}
+            aria-label="Remove from queue"
+            className={`${actionButtonClass} bg-rd-dismiss-bg text-rd-dismiss-fg hover:bg-rd-dismiss-hover`}
+          >
+            {busyAction === 'dismiss' ? (
+              <Spinner
+                trackClass="border-rd-dismiss-fg/30"
+                tipClass="border-t-rd-dismiss-fg"
+              />
+            ) : (
+              <TrashIcon />
+            )}
+          </button>
+
+          <button
+            onClick={handleRemove}
+            disabled={isBusy}
+            aria-label="Remove content"
+            className={`${actionButtonClass} bg-rd-remove-bg text-rd-remove-fg hover:bg-rd-remove-hover`}
+          >
+            {busyAction === 'remove' ? (
+              <Spinner
+                trackClass="border-rd-remove-fg/30"
+                tipClass="border-t-rd-remove-fg"
+              />
+            ) : (
+              <XIcon />
+            )}
+          </button>
+
+          <button
+            onClick={handleApprove}
+            disabled={isBusy}
+            aria-label="Approve"
+            className={`${actionButtonClass} bg-rd-approve-bg text-rd-approve-fg hover:bg-rd-approve-hover`}
+          >
+            {busyAction === 'approve' ? (
+              <Spinner
+                trackClass="border-rd-approve-fg/30"
+                tipClass="border-t-rd-approve-fg"
+              />
+            ) : (
+              <CheckIcon />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Context title */}
@@ -121,7 +213,7 @@ export const ModQueueCard = ({ record, onApprove, isApproving, hasError }: Props
       {/* Error state */}
       {hasError ? (
         <p className="mt-2 text-xs font-medium text-rd-text-error">
-          Approval failed — please try again
+          Action failed — please try again
         </p>
       ) : null}
     </article>

@@ -52,6 +52,7 @@ const {
   getRecordRange,
   deleteRecord,
   deleteOldestRecords,
+  deleteAllRecords,
 } = await import('../util/database.js');
 
 const INDEX_KEY = 'content-item:index';
@@ -193,5 +194,19 @@ describe('database', () => {
 
     expect(await deleteOldestRecords(0)).toBe(0);
     expect(await getTotalRecords()).toBe(1);
+  });
+
+  it('deleteAllRecords removes every indexed record', async () => {
+    await storePostRecord('t3_a', postData, 1000);
+    await storeCommentRecord('t1_b', commentData, 2000);
+    await storePostRecord('t3_c', postData, 3000);
+
+    const deleted = await deleteAllRecords();
+
+    expect(deleted).toBe(3);
+    expect(await getTotalRecords()).toBe(0);
+    expect(await getRecord('t3_a')).toBeNull();
+    expect(await getRecord('t1_b')).toBeNull();
+    expect(await getRecord('t3_c')).toBeNull();
   });
 });

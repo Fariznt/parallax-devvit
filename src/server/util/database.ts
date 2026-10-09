@@ -120,6 +120,11 @@ export async function getTotalRecords(): Promise<number> {
   return redis.zCard(RECORD_INDEX_KEY);
 }
 
+/** Deletes every stored record and clears the ordered index. */
+export async function deleteAllRecords(): Promise<number> {
+  return deleteOldestRecords(await getTotalRecords());
+}
+
 /** Retrieves stored records by newest-first rank, inclusive of from and to. */
 export async function getRecordRange(from: number, to: number): Promise<StoredRecord[]> {
   const totalRecords = await getTotalRecords();

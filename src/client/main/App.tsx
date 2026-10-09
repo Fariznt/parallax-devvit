@@ -15,6 +15,8 @@ type AppState =
   | { status: 'forbidden' }
   | { status: 'ready' };
 
+type CardAction = 'approve' | 'dismiss' | 'remove';
+
 export const App = () => {
   const [appState, setAppState] = useState<AppState>({ status: 'loading' });
   const [records, setRecords] = useState<StoredRecord[]>([]);
@@ -23,8 +25,9 @@ export const App = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [errorCards, setErrorCards] = useState<Set<string>>(new Set());
-  const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
+  const [busyActions, setBusyActions] = useState<Map<string, CardAction>>(new Map());
   const [leavingIds, setLeavingIds] = useState<Set<string>>(new Set());
+  const [clearing, setClearing] = useState(false);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   // Track offset in a ref so the intersection observer callback always sees the latest value.
@@ -119,7 +122,8 @@ export const App = () => {
 
   const handleExitComplete = useCallback((id: string) => {
     setRecords((prev) => prev.filter((r) => r.id !== id));
-    setTotalRecords((prev) => prev - 1);
+    // Floor at 0 so Clear All (which zeroes the count eagerly) doesn't go negative.
+    setTotalRecords((prev) => Math.max(0, prev - 1));
     offsetRef.current = Math.max(0, offsetRef.current - 1);
     setLeavingIds((prev) => {
       const next = new Set(prev);
@@ -128,37 +132,85 @@ export const App = () => {
     });
   }, []);
 
-  // Calls the server's handleApprove (src/server/handlers/handle-custom-modqueue-actions.ts),
-  // which approves the content, removes it from the queue, and archives related modmail.
-  const handleApproveClick = useCallback(async (id: string) => {
-    setApprovingIds((prev) => new Set([...prev, id]));
-
-    try {
-      const res = await fetch(`/api/records/${id}/approve`, { method: 'POST' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      setApprovingIds((prev) => {
+  const flashError = useCallback((id: string) => {
+    setErrorCards((prev) => new Set([...prev, id]));
+    setTimeout(() => {
+      setErrorCards((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
-      setLeavingIds((prev) => new Set([...prev, id]));
-    } catch {
-      setApprovingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      setErrorCards((prev) => new Set([...prev, id]));
-      setTimeout(() => {
-        setErrorCards((prev) => {
-          const next = new Set(prev);
+    }, 4000);
+  }, []);
+
+  const runCardAction = useCallback(
+    async (id: string, action: CardAction, path: string) => {
+      setBusyActions((prev) => new Map(prev).set(id, action));
+
+      try {
+        const res = await fetch(path, { method: 'POST' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        setBusyActions((prev) => {
+          const next = new Map(prev);
           next.delete(id);
           return next;
         });
-      }, 4000);
+        setLeavingIds((prev) => new Set([...prev, id]));
+      } catch {
+        setBusyActions((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+        flashError(id);
+      }
+    },
+    [flashError]
+  );
+
+  // Approves Reddit content, removes it from the queue, and archives related modmail
+  // when remMailOnApproveRemove is enabled.
+  const handleApproveClick = useCallback(
+    (id: string) => runCardAction(id, 'approve', `/api/records/${id}/approve`),
+    [runCardAction]
+  );
+
+  // Removes the item from the custom queue only (no Reddit action, no modmail archive).
+  const handleDismissClick = useCallback(
+    (id: string) => runCardAction(id, 'dismiss', `/api/records/${id}/dismiss`),
+    [runCardAction]
+  );
+
+  // Removes Reddit content, deletes the queue record, and archives related modmail
+  // when remMailOnApproveRemove is enabled.
+  const handleRemoveClick = useCallback(
+    (id: string) => runCardAction(id, 'remove', `/api/records/${id}/remove`),
+    [runCardAction]
+  );
+
+  // Clears the entire custom queue without touching Reddit content or modmail.
+  const handleClearAll = useCallback(async () => {
+    if (clearing || records.length === 0) return;
+    setClearing(true);
+    try {
+      const res = await fetch('/api/records/clear', { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      setLeavingIds(new Set(records.map((r) => r.id)));
+      // After exit animations, records drain via handleExitComplete. Reset totals now
+      // so the header reflects an empty queue immediately.
+      setTotalRecords(0);
+      offsetRef.current = 0;
+      setOffset(0);
+      hasMoreRef.current = false;
+      setHasMore(false);
+    } catch {
+      // No per-card target — leave the queue as-is on failure.
+    } finally {
+      setClearing(false);
     }
-  }, []);
+  }, [clearing, records]);
 
   if (appState.status === 'loading') {
     return (
@@ -194,13 +246,25 @@ export const App = () => {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       {/* Header */}
-      <div className="mb-5 flex items-baseline justify-between">
-        <h1 className="text-xl font-bold text-rd-text-primary">Modqueue</h1>
-        <span className="text-sm text-rd-text-secondary">
-          {totalRecords === 0
-            ? 'No items'
-            : `${totalRecords} item${totalRecords !== 1 ? 's' : ''}`}
-        </span>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-baseline gap-3">
+          <h1 className="text-xl font-bold text-rd-text-primary">Modqueue</h1>
+          <span className="text-sm text-rd-text-secondary">
+            {totalRecords === 0
+              ? 'No items'
+              : `${totalRecords} item${totalRecords !== 1 ? 's' : ''}`}
+          </span>
+        </div>
+
+        {records.length > 0 ? (
+          <button
+            onClick={() => void handleClearAll()}
+            disabled={clearing}
+            className="shrink-0 rounded-full bg-rd-dismiss-bg px-3 py-2 text-xs font-semibold text-rd-dismiss-fg transition-colors hover:bg-rd-dismiss-hover active:scale-95 disabled:pointer-events-none disabled:opacity-60"
+          >
+            {clearing ? 'Clearing…' : 'Clear All'}
+          </button>
+        ) : null}
       </div>
 
       {/* Feed */}
@@ -231,7 +295,9 @@ export const App = () => {
                     <ModQueueCard
                       record={record}
                       onApprove={handleApproveClick}
-                      isApproving={approvingIds.has(record.id)}
+                      onDismiss={handleDismissClick}
+                      onRemove={handleRemoveClick}
+                      busyAction={busyActions.get(record.id) ?? null}
                       hasError={errorCards.has(record.id)}
                     />
                   </div>

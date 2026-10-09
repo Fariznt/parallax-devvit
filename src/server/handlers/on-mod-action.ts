@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import type { OnModActionRequest, TriggerResponse } from '@devvit/web/shared';
 import { deleteRecord } from '../util/database';
 
-/** Usernames whose mod actions are this app's own automation, not a real mod decision. */
+/** Usernames whose mod actions are automation, not a real mod decision. */
 export const AUTOMATION_BOTS = new Set(['AutoModerator', 'policy-agent']);
 
 const HANDLED_ACTIONS = new Set([
@@ -21,8 +21,7 @@ const HANDLED_ACTIONS = new Set([
  * (e.g. via native Reddit mod tools), the item has been actioned and should be
  * removed from the pending queue.
  *
- * Actions taken by this app's own automation (the policy engine's automatic
- * removals) are ignored entirely here, so they don't pull items out of the
+ * Actions taken by automatoin bots are ignored entirely here, so they don't pull items out of the
  * custom modqueue webview. The webview's own approve flow
  * (handle-custom-modqueue-actions.ts) is responsible for its own queue/modmail
  * cleanup instead.

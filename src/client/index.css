@@ -39,6 +39,20 @@
   /* approve button hover */
   --rd-approve-hover:     #dcfce7;
 
+  /* dismiss (queue) button background */
+  --rd-dismiss-bg:        #f3f4f6;
+  /* dismiss (queue) button icon */
+  --rd-dismiss-fg:        #4b5563;
+  /* dismiss (queue) button hover */
+  --rd-dismiss-hover:     #e5e7eb;
+
+  /* remove content button background */
+  --rd-remove-bg:         #fef2f2;
+  /* remove content button icon */
+  --rd-remove-fg:         #dc2626;
+  /* remove content button hover */
+  --rd-remove-hover:      #fee2e2;
+
   /* image placeholder */
   --rd-image-bg:          #f3f4f6;
   /* spinner ring track */
@@ -76,6 +90,14 @@
     --rd-approve-fg:        #46d160;
     --rd-approve-hover:     #1e3323;
 
+    --rd-dismiss-bg:        #1a1c1e;
+    --rd-dismiss-fg:        #a8a9aa;
+    --rd-dismiss-hover:     #232526;
+
+    --rd-remove-bg:         #2b1517;
+    --rd-remove-fg:         #ff585b;
+    --rd-remove-hover:      #3a1a1d;
+
     --rd-image-bg:          #1a1c1e;
     --rd-spinner-track:     #343536;
 
@@ -102,6 +124,12 @@
   --color-rd-approve-bg:      var(--rd-approve-bg);
   --color-rd-approve-fg:      var(--rd-approve-fg);
   --color-rd-approve-hover:   var(--rd-approve-hover);
+  --color-rd-dismiss-bg:      var(--rd-dismiss-bg);
+  --color-rd-dismiss-fg:      var(--rd-dismiss-fg);
+  --color-rd-dismiss-hover:   var(--rd-dismiss-hover);
+  --color-rd-remove-bg:       var(--rd-remove-bg);
+  --color-rd-remove-fg:       var(--rd-remove-fg);
+  --color-rd-remove-hover:    var(--rd-remove-hover);
   --color-rd-image-bg:        var(--rd-image-bg);
   --color-rd-spinner-track:   var(--rd-spinner-track);
   --color-rd-cta:             var(--rd-cta);

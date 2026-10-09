@@ -7,7 +7,12 @@ import { handleOnAppInstall } from './handlers/on-app-install';
 import { handleOnCommentCreate } from './handlers/on-comment-create';
 import { handleOnPostCreate } from './handlers/on-post-create';
 import { handleOnModAction } from './handlers/on-mod-action';
-import { handleApprove } from './handlers/handle-custom-modqueue-actions';
+import {
+  handleApprove,
+  handleClearAll,
+  handleDismiss,
+  handleRemove,
+} from './handlers/handle-custom-modqueue-actions';
 import { handleMenuPostCreate } from './handlers/menu-post-create';
 
 const app = express();
@@ -74,9 +79,11 @@ router.get('/api/records/total', async (_req, res): Promise<void> => {
   }
 });
 
-// Approve the corresponding Reddit content, remove it from the stored review queue,
-// and archive any related modmail. See handle-custom-modqueue-actions.ts.
+// Custom modqueue actions — see handle-custom-modqueue-actions.ts.
+router.post('/api/records/clear', handleClearAll);
 router.post('/api/records/:id/approve', handleApprove);
+router.post('/api/records/:id/dismiss', handleDismiss);
+router.post('/api/records/:id/remove', handleRemove);
 
 // Internal routes --- wired from devvit.json (triggers, menu). Not called via client fetch.
 // These run based on events triggered in Reddit, outside of our webview client
