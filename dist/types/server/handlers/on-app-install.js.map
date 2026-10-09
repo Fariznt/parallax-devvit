@@ -1,1 +1,0 @@
-{"version":3,"file":"on-app-install.js","sourceRoot":"","sources":["../../../../src/server/handlers/on-app-install.ts"],"names":[],"mappings":"AAGA,mEAAmE;AACnE,MAAM,CAAC,KAAK,UAAU,kBAAkB,CACtC,IAA0E,EAC1E,GAA8B;IAE9B,OAAO,CAAC,GAAG,CAAC,iDAAiD,CAAC,CAAC;IAC/D,GAAG,CAAC,MAAM,CAAC,GAAG,CAAC,CAAC,IAAI,CAAC,EAAE,MAAM,EAAE,IAAI,EAAE,CAAC,CAAC;AACzC,CAAC"}
