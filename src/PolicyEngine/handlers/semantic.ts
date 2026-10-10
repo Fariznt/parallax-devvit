@@ -125,8 +125,9 @@ async function fetchLLMResponse(
   url: string, 
   model: string, 
   context: string | null, 
-  systemPrompt: string, 
-  text: string
+  systemPrompt: string,
+  text: string,
+  reasoningEffort?: string
 ): Promise<string> {
   const messages = [
       { role: "system" as const, content: systemPrompt },
@@ -146,6 +147,7 @@ async function fetchLLMResponse(
       model,
       messages,
       temperature: 0,
+      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
     }),
   }
 
@@ -255,6 +257,7 @@ export async function doDeferredChecks(
   baseUrl: string,
   model: string,
   key: string,
+  reasoningEffort?: string,
 ): Promise<void> {
   // let checks: DeferredCheck[] = evalState.deferredChecks
   const checks: Record<number, DeferredCheck> =
@@ -273,7 +276,8 @@ export async function doDeferredChecks(
     model,
     context,
     systemPrompt,
-    target
+    target,
+    reasoningEffort
   );
 
   // Parse and validate

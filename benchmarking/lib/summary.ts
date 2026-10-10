@@ -138,56 +138,14 @@ export function writeSummary(dir: string, config: Record<string, unknown> | null
 
 // === Markdown rendering ===
 
-export function renderMarkdown({ config, policies }: Summary): string {
-  const lines: string[] = [`# Benchmark summary${config?.dataset ? `: ${config.dataset}` : ""}`, ""];
-
-  if (config) {
-    for (const [k, v] of Object.entries(config)) lines.push(`- **${k}**: ${JSON.stringify(v)}`);
-    lines.push("");
-  }
-
-  lines.push("## Overall", "");
-  lines.push(...table(
-    ["policy", "n", "errors", "base rate", "accuracy", "precision", "recall", "F1", "pred+ rate",
-      "LLM-call rate", "fetches", "cache hits", "ms/request", "p95 ms/request"],
-    Object.entries(policies).map(([name, p]) => [
-      name, p.n, p.errors, num(p.baseRate), num(p.accuracy), num(p.precision), num(p.recall),
-      num(p.f1), num(p.positiveRate), num(p.llmCallRate), p.llmFetches, p.cacheHits,
-      ms(p.msPerRequest), ms(p.msPerRequestP95),
-    ])
-  ), "");
-
-  const categories = [...new Set(Object.values(policies).flatMap(p => Object.keys(p.byCategory)))];
-  if (categories.length > 0) lines.push("## By category", "");
-  for (const category of categories) {
-    lines.push(`### ${category}`, "");
-    lines.push(...table(
-      ["policy", "n", "errors", "base rate", "accuracy", "precision", "recall", "F1", "pred+ rate"],
-      Object.entries(policies)
-        .filter(([, p]) => p.byCategory[category])
-        .map(([name, p]) => {
-          const m = p.byCategory[category];
-          return [name, m.n, m.errors, num(m.baseRate), num(m.accuracy), num(m.precision),
-            num(m.recall), num(m.f1), num(m.positiveRate)];
-        })
-    ), "");
-  }
-
-  return lines.join("\n");
-}
-
-function table(header: string[], rows: (string | number)[][]): string[] {
+export function renderMarkdown({ policies }: Summary): string {
+  const rows = Object.entries(policies).map(([name, p]) =>
+    `| ${name} | ${p.tp} | ${p.tn} | ${p.fp} | ${p.fn} | ${p.f1 === null ? "–" : p.f1.toFixed(3)} |`
+  );
   return [
-    `| ${header.join(" | ")} |`,
-    `|${header.map(() => "---").join("|")}|`,
-    ...rows.map(r => `| ${r.join(" | ")} |`),
-  ];
-}
-
-function num(x: number | null): string {
-  return x === null ? "–" : x.toFixed(3);
-}
-
-function ms(x: number | null): string {
-  return x === null ? "–" : String(Math.round(x));
+    "| policy | TP | TN | FP | FN | F1 |",
+    "|---|---|---|---|---|---|",
+    ...rows,
+    "",
+  ].join("\n");
 }

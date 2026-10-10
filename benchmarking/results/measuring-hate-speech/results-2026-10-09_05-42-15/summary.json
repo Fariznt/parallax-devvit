@@ -1,0 +1,150 @@
+{
+  "config": {
+    "dataset": "measuring-hate-speech",
+    "policies": [
+      "dummy-llm",
+      "dummy-parallax"
+    ],
+    "dataFile": "data.jsonl",
+    "sample": 4,
+    "seed": 0,
+    "modelName": "gemini-3.5-flash-lite",
+    "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    "delayMs": 4000,
+    "concurrency": 4,
+    "retries": 1,
+    "cache": true,
+    "earlyExit": false,
+    "items": 4,
+    "startedAt": "2026-10-09T09:42:15.771Z",
+    "finishedAt": "2026-10-09T09:42:28.322Z"
+  },
+  "policies": {
+    "dummy-llm": {
+      "n": 4,
+      "errors": 0,
+      "tp": 1,
+      "fp": 0,
+      "tn": 2,
+      "fn": 1,
+      "baseRate": 0.5,
+      "positiveRate": 0.25,
+      "accuracy": 0.75,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.6666666666666666,
+      "llmCallRate": 1,
+      "llmFetches": 4,
+      "cacheHits": 0,
+      "msPerRequest": 657,
+      "msPerRequestP95": 784,
+      "byCategory": {
+        "race": {
+          "n": 2,
+          "errors": 0,
+          "tp": 0,
+          "fp": 0,
+          "tn": 2,
+          "fn": 0,
+          "baseRate": 0,
+          "positiveRate": 0,
+          "accuracy": 1,
+          "precision": null,
+          "recall": null,
+          "f1": null
+        },
+        "gender": {
+          "n": 1,
+          "errors": 0,
+          "tp": 0,
+          "fp": 0,
+          "tn": 0,
+          "fn": 1,
+          "baseRate": 1,
+          "positiveRate": 0,
+          "accuracy": 0,
+          "precision": null,
+          "recall": 0,
+          "f1": null
+        },
+        "origin": {
+          "n": 1,
+          "errors": 0,
+          "tp": 1,
+          "fp": 0,
+          "tn": 0,
+          "fn": 0,
+          "baseRate": 1,
+          "positiveRate": 1,
+          "accuracy": 1,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1
+        }
+      }
+    },
+    "dummy-parallax": {
+      "n": 4,
+      "errors": 0,
+      "tp": 1,
+      "fp": 0,
+      "tn": 2,
+      "fn": 1,
+      "baseRate": 0.5,
+      "positiveRate": 0.25,
+      "accuracy": 0.75,
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.6666666666666666,
+      "llmCallRate": 0.25,
+      "llmFetches": 0,
+      "cacheHits": 1,
+      "msPerRequest": null,
+      "msPerRequestP95": null,
+      "byCategory": {
+        "race": {
+          "n": 2,
+          "errors": 0,
+          "tp": 0,
+          "fp": 0,
+          "tn": 2,
+          "fn": 0,
+          "baseRate": 0,
+          "positiveRate": 0,
+          "accuracy": 1,
+          "precision": null,
+          "recall": null,
+          "f1": null
+        },
+        "gender": {
+          "n": 1,
+          "errors": 0,
+          "tp": 0,
+          "fp": 0,
+          "tn": 0,
+          "fn": 1,
+          "baseRate": 1,
+          "positiveRate": 0,
+          "accuracy": 0,
+          "precision": null,
+          "recall": 0,
+          "f1": null
+        },
+        "origin": {
+          "n": 1,
+          "errors": 0,
+          "tp": 1,
+          "fp": 0,
+          "tn": 0,
+          "fn": 0,
+          "baseRate": 1,
+          "positiveRate": 1,
+          "accuracy": 1,
+          "precision": 1,
+          "recall": 1,
+          "f1": 1
+        }
+      }
+    }
+  }
+}

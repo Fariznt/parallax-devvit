@@ -7,9 +7,20 @@ try without redditapi enabled
 
 
 
-README:
-UI/web migration is a priority
+actual todo within weeks
+-finish bench and readme corresponding to it
+  true performance is actually better because dataset has lots of hits,
+  true policy is better fitting, etc.
 
+- update readme with the migration info
+
+- make sure i can claim trace surfacing. probably add trace surfacing and viewing as a actual feature in webview.
+- probably make an izlam branch and keep modqueue thing separate there, or make it toggleablel, and separately
+expose the trace post
+
+
+- marketing and outreach
+- usability improvements
 
 Future
 
@@ -165,4 +176,23 @@ measuring hate speech dataset from uc berkley. could run a general thing, and st
 
 covid misinformation dataset from shahan ali memon cmu-miscov19
 
+prepare for irl info harness asw,although arguably the whole thing will be different. in implementation
+i think ill stick to real dataset, have the good real excuses ready for subreddit-specific data (reddit keeping stuff on reddit, etc. etc.)
+and also external datasets are much easier to manipulate for analysis.
+
 we need a harness that works with both. we need reasonable subset selection. i think itll be best to start on the likely and easy win of the hate speech one.
+
+
+build me a plan for a benchmarking harness in a new ./benchmarking
+
+the primary goal is to consume the hate speech dataset from uc berkley, but i also want to support later
+the ucsd dataset fro wan et al ACL 2019 of book discussions and spoilers.
+
+Dataset page: https://cseweb.ucsd.edu/~jmcauley/datasets/goodreads.html (the "English review subset for spoiler detection" section)
+Processed file, split into sentences with a spoiler flag on each: https://mcauleylab.ucsd.edu/public_datasets/gdrive/goodreads/goodreads_reviews_spoiler.json.gz (about 620 MB)
+Raw version: https://mcauleylab.ucsd.edu/public_datasets/gdrive/goodreads/goodreads_reviews_spoiler_raw.json.gz
+Paper: https://arxiv.org/abs/1905.13416
+
+Measuring Hate Speech (UC Berkeley), for the culture/identity scope
+
+https://huggingface.co/datasets/ucberkeley-dlab/measuring-hate-speech (CC-BY 4.0. Target columns: target_race_*, target_religion_*, target_origin_*, plus gender, sexuality, age, disability and politics)

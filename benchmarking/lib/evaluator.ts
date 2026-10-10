@@ -11,9 +11,10 @@ export type Evaluator = (text: string) => Promise<Evaluation>;
  */
 export function createParallaxEvaluator(
   policy: Record<string, unknown>,
-  { modelName, baseUrl, apiKey, earlyExit }: {
+  { modelName, baseUrl, reasoningEffort, apiKey, earlyExit }: {
     modelName: string;
     baseUrl: string;
+    reasoningEffort: string | null;
     apiKey: string | null;
     earlyExit: boolean;
   }
@@ -22,7 +23,11 @@ export function createParallaxEvaluator(
     throw new Error("policy has semantic_check nodes and needs an LLM; set KEY in benchmarking/.env or pass --api-key");
   }
   // the engine normalizes the policy in place, so give it its own copy
-  const engine = new PolicyEngine(structuredClone(policy), { modelName, baseUrl });
+  const engine = new PolicyEngine(structuredClone(policy), {
+    modelName,
+    baseUrl,
+    ...(reasoningEffort ? { reasoningEffort } : {}),
+  });
 
   return async (text) => {
     const result = await engine.evaluate({

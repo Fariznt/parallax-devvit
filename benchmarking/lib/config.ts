@@ -26,6 +26,7 @@ export type RunConfig = {
   modelName: string;
   baseUrl: string;
   apiKey: string | null;
+  reasoningEffort: string | null; // sent as reasoning_effort only when set
   delayMs: number;
   concurrency: number;
   retries: number;
@@ -45,6 +46,8 @@ const USAGE = `Usage: npm run bench -- --dataset <name> [options]
   --api-key <key>        LLM API key              (env KEY)
   --base-url <url>       OpenAI-compatible chat completions URL
                                                   (env BASE_URL, default: Gemini)
+  --reasoning-effort <e> sent as reasoning_effort, e.g. none for gpt-6-luna
+                                                  (env REASONING_EFFORT, default: not sent)
   --delay-ms <n>         min gap between real LLM requests (env DELAY_MS, default: ${DEFAULT_DELAY_MS})
   --concurrency <n>      evaluations in flight (default: 4)
   --retries <n>          retries per item on error (default: 3)
@@ -73,6 +76,7 @@ export function loadConfig(argv: string[]): RunConfig {
         model: { type: "string" },
         "api-key": { type: "string" },
         "base-url": { type: "string" },
+        "reasoning-effort": { type: "string" },
         "delay-ms": { type: "string" },
         concurrency: { type: "string", default: "4" },
         retries: { type: "string", default: "3" },
@@ -101,6 +105,7 @@ export function loadConfig(argv: string[]): RunConfig {
     modelName: values.model ?? env.MODEL ?? DEFAULT_MODEL,
     baseUrl: (values["base-url"] ?? env.BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, ""),
     apiKey: values["api-key"] ?? env.KEY ?? null,
+    reasoningEffort: values["reasoning-effort"] ?? env.REASONING_EFFORT ?? null,
     delayMs: toCount("--delay-ms", values["delay-ms"] ?? env.DELAY_MS ?? String(DEFAULT_DELAY_MS), 0),
     concurrency: toCount("--concurrency", values.concurrency, 1),
     retries: toCount("--retries", values.retries, 0),

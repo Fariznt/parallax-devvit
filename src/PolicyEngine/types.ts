@@ -3,6 +3,7 @@
 export type ModelConfig = {
   modelName: string;
   baseUrl: string;
+  reasoningEffort?: string;
 };
 
 // === Definitions for Policy definition ===
