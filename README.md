@@ -22,6 +22,22 @@ Policy-Agent is an independent third-party application and is not affiliated wit
 
 ---
 
+## Simple Example
+
+We can represent the following ruleset in PDN as a tree of combinators (all, any, not) and predicates. 
+
+1. Don't say "apple"
+2. No targeted insults about obesity
+3. All content must reference bananas explicitly or implicitly
+
+A given policy tree expresses what the evaluated content must satisfy. Here, we must satisfy 'all' of the 3 rules. Use of fat-words triggers an LLM check to see if there is a targeted insult before marking a violation, and use of the word primate triggers a check to see if bananas are implied.
+
+[![Policy as tree](https://i.imgur.com/dTzZJU1.png)](https://imgur.com/a/PBP3CYy)
+
+See ./docs for more.
+
+---
+
 ## Key Features
 
 - **High logical flexibility (boolean completeness over modular predicates)** – Moderators/policymakers can represent (practically) any boolean expression composed of checks (ex. regex matching) that determine user content as a violation or not. For example, we could represent x and (y or z) where each of x, y, and z are there own rule or boolean expression.
@@ -35,6 +51,36 @@ Policy-Agent is an independent third-party application and is not affiliated wit
 
 ---
 
+## Benchmark
+
+Parallax is meant to give LLM-level moderation judgment at a fraction of the cost by gating LLMs behind cheap checks within a composition of combinators and predicates that represent some complex content policy.
+
+**Dataset:** 2,000 comments randomly sampled from from UC Berkeley's [Measuring Hate Speech](https://huggingface.co/datasets/ucberkeley-dlab/measuring-hate-speech) corpus (hate if `hate_speech_score > 0.5`; 26% positive). Three evaluation schemes were compared: an LLM-only check (gpt-6-luna), regex-only keyword filtering (Davidson et al. 2017 lexicon + hate-related keywords), and a maximally simple Parallax policy that composes those two: the same regex gating the same LLM check. 
+
+![Confusion counts per policy](docs/benchmark-mhs.svg)
+
+| policy | TP | TN | FP | FN | F1 |
+|---|---|---|---|---|---|
+| llm | 279 | 1212 | 279 | 230 | 0.523 |
+| parallax | 224 | 1340 | 151 | 285 | 0.507 |
+| regex | 406 | 912 | 579 | 103 | 0.544 |
+
+Parallax halved LLM calls (985 vs. 2,000 calls) and token cost compared with an LLM-only moderation scheme while retaining an impressive 97% of an LLM-only scheme's F1. 
+
+It also produced 74% fewer false positives than the regex-only filtering that acts as the LLM gate (151 vs. 579), at the cost of fewer true positive flagging.
+
+### Discussion
+
+- The tradeoff here greatly suits online content moderation where human labor limits how much content can be reasonably reviewed, but LLM-only moderation is not justified due to cost. 
+
+- The hate speech dataset understates Parallax's value: much of it can be caught by filtering on slurs or with cheaper tone classifiers like OpenAI's moderation API. Communities with sensitive terminology need judgment about *how* a term is used, which is where a gated semantic check matters most and where Parallax is most useful.
+
+- Our simple Parallax policy, chosen for comparability with the regex-only and LLM-only schemes, also understate Parallax's value: This is a two-node policy that doesn't utilize the system's ability to represent and interpret compositions of predicates that represent nontrivial content policies as boolean formulas.
+
+- Finally, it should also be noted that this dataset has higher positive rate (26%) than a typical social media space has true violations, so the percentage of LLM calls are overstated and the cost in practice is very miniscule. The system runs today on one subreddit with 146k members, and has costed $0 under the free Gemini usage limits.
+
+---
+
 ## Tech Stack
 
 - **Language(s):** Typescript, JSON -- languages limited by Devvit environment
@@ -45,19 +91,14 @@ Policy-Agent is an independent third-party application and is not affiliated wit
 
 ---
 
-## Roadmap
+## Future Tasks
 
-- Migration to web app to provide nicer UI for policy definition and access to evaluation traces*.
-- Storing evaluation traces in Redis database*
--Ban action with custom number of days
-- Adding a core predicate, safety_check* (content safety classifier; more powerful than regex of match_node and cheaper than LLMs)
-- Add secondary predicates like language_check*, and possibly wrappers over current checks for easier simply policy definitions
+- Easily most important: Usability improvements. Perhaps a well-tested LLM pipeline to turn existing rulesets into validated PDN, and/or a user interface for defining the policy in terms of blocks rather than JSON.
+- Marketing to more subreddits
 - Accepting YAML syntax for PDN
-- Report handling (currently relying on post and comment creation)
-- Better documentation -> Launch to public
-
-*Infrastructure, features, or dead code for this exists in the repository already
-**minor planned improvements and far-future plans not included
+- Ban action with custom number of days
+- Adding a core predicate, safety_check* (content safety classifier; more powerful than regex of match_node and cheaper than LLMs) via OpenAI's moderation API
+- Report handling (currently relying on post and comment creation as the trigger from Reddit to use Parallax)
 
 # Getting Started / Documentation
 
