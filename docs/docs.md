@@ -18,7 +18,7 @@ Policies are composable:
 - Combinator nodes (`all_of`, `any_of`, `not`) express logic over child policies.
 
 Here is a simple example to think about as you read this documentation. You will understand more of it as you read, but know that it encodes the following rules:
-1. Don't say "fuck"
+1. Don't say "apple"
 2. No targeted insults about obesity
 3. All content must reference bananas explicitly or implicitly
 ```
