@@ -196,3 +196,8 @@ Paper: https://arxiv.org/abs/1905.13416
 Measuring Hate Speech (UC Berkeley), for the culture/identity scope
 
 https://huggingface.co/datasets/ucberkeley-dlab/measuring-hate-speech (CC-BY 4.0. Target columns: target_race_*, target_religion_*, target_origin_*, plus gender, sexuality, age, disability and politics)
+
+
+Halved LLM moderation costs while retaining 97% of full-LLM F1 on real-world hate speech data, with 74% fewer false positives than regex-only filtering.
+
+Be ready for one interview question. Regex-only actually had a slightly higher F1 (0.544 against 0.507) because it catches far more of the hate (80% recall against 44%). It just floods moderators with false positives. "74% fewer false positives" is true, but if someone asks "what about recall against regex?", the honest answer is that regex catches more but is wrong 59% of the time it flags (precision 0.41), while parallax is wrong 40% of the time (precision 0.60). That's still a good story for moderation, where false positives are what burn out human reviewers. Just don't get caught off guard by it.

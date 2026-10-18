@@ -30,7 +30,7 @@ Here is a simple example to think about as you read this documentation. You will
       "not": {
         "match_check": {
           "patterns": [
-            "\\b(apple)\\b"
+            "\\bapples?\\b"
           ],
           "flags": "i"
         }      
@@ -43,7 +43,7 @@ Here is a simple example to think about as you read this documentation. You will
         "name": "fat_words",
         "match_check": {
           "patterns": [
-            "\\b(fatty)\\b",
+            "\\bfatt(y|ies)\\b",
             "\\b(obese)\\b",
             "\\b(overweight)\\b",
             "\\b(lard)\\b",
@@ -78,7 +78,7 @@ Here is a simple example to think about as you read this documentation. You will
                 "flags": "i"
             },
             "next_check": {
-                "name: "suggests_banana",
+                "name": "suggests_banana",
                 "semantic_check": {
                     "condition": "implies, suggests, or hints at bananas intentionally"
                 }
@@ -89,7 +89,7 @@ Here is a simple example to think about as you read this documentation. You will
   ]
 }
 
-If we were to express this policy as a tree (to help you understand what a 'node' is), it would like like the following:
+If we were to express this policy as a tree (to help you understand what a 'node' is), it would look like the following:
 ```
 
 [Policy as tree](https://imgur.com/a/PBP3CYy)

@@ -119,12 +119,80 @@ export async function loadEarlyExitFromSettings(
   return earlyExit
 }
 
-export async function loadKeyFromSettings(
-    context: TriggerContext
-): Promise<string> {
-  const apiKey = await context.settings.get("apiKey");
-  if (typeof apiKey !== "string" || apiKey.length === 0) {
-    throw new Error('Setting "apiKey" must be a non-empty string');
+const DEFAULT_LLM_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const DEFAULT_LLM_NAME = "gemini-3.5-flash-lite";
+
+export interface LlmSettings {
+  source: "override" | "premium" | "default"; // which settings group was used
+  apiKey: string;
+  modelName: string;
+  baseUrl: string;
+  reasoningEffort?: string; // sent as reasoning_effort only when set
+}
+
+async function getString(context: TriggerContext, name: string): Promise<string | null> {
+  const value = await context.settings.get(name);
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+/**
+ * Whether this subreddit is listed in the app-scoped "premiumSubreddits" setting.
+ */
+async function isPremiumSubreddit(context: TriggerContext): Promise<boolean> {
+  const premiumSubreddits = await getString(context, "premiumSubreddits");
+  const subredditName = context.subredditName?.toLowerCase();
+  if (!premiumSubreddits || !subredditName) return false;
+  return premiumSubreddits
+    .split(",")
+    .map((s) => s.trim().replace(/^r\//i, "").toLowerCase())
+    .includes(subredditName);
+}
+
+/**
+ * Resolves the key, base URL, and model to use for this subreddit, in order of priority:
+ * 1. Installation overrides, only if the subreddit provides its own key. URL and model
+ *    overrides are ignored otherwise, so the app's key is never sent to a mod-defined URL
+ *    and mods can't pick a costlier model on the app's key.
+ * 2. App-level premium settings, for subreddits listed in "premiumSubreddits".
+ * 3. App-level defaults.
+ */
+export async function loadLlmSettings(context: TriggerContext): Promise<LlmSettings> {
+  const defaultUrl = await getString(context, "defaultLlmURL") ?? DEFAULT_LLM_URL;
+  const defaultName = await getString(context, "defaultLlmName") ?? DEFAULT_LLM_NAME;
+  const defaultEffort = await getString(context, "defaultLlmReasoningEffort");
+
+  let settings: LlmSettings;
+  const overrideKey = await getString(context, "overrideApiKey");
+  if (overrideKey) {
+    settings = {
+      source: "override",
+      apiKey: overrideKey,
+      baseUrl: await getString(context, "overrideLlmURL") ?? defaultUrl,
+      modelName: await getString(context, "overrideLlmName") ?? defaultName,
+      reasoningEffort: await getString(context, "overrideLlmReasoningEffort") ?? defaultEffort ?? undefined,
+    };
+  } else if (await isPremiumSubreddit(context)) {
+    const apiKey = await getString(context, "premiumApiKey");
+    const baseUrl = await getString(context, "premiumLlmURL");
+    const modelName = await getString(context, "premiumLlmName");
+    if (!apiKey || !baseUrl || !modelName) {
+      throw new Error(
+        `r/${context.subredditName} is listed in "premiumSubreddits" but ` +
+        `"premiumApiKey", "premiumLlmURL", and "premiumLlmName" are not all set`
+      );
+    }
+    const reasoningEffort = await getString(context, "premiumLlmReasoningEffort") ?? undefined;
+    settings = { source: "premium", apiKey, baseUrl, modelName, reasoningEffort };
+  } else {
+    const apiKey = await getString(context, "apiKey");
+    if (!apiKey) {
+      throw new Error('Setting "apiKey" must be a non-empty string');
+    }
+    settings = { source: "default", apiKey, baseUrl: defaultUrl, modelName: defaultName, reasoningEffort: defaultEffort ?? undefined };
   }
-  return apiKey;
+
+  settings.baseUrl = settings.baseUrl.replace(/\/+$/, "");
+  // providers only accept lowercase values, e.g. OpenAI rejects "None" but accepts "none"
+  settings.reasoningEffort = settings.reasoningEffort?.toLowerCase();
+  return settings;
 }

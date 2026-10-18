@@ -3,14 +3,15 @@ import { PolicyEngine }  from "./PolicyEngine/engine.js";
 import { 
   loadActionMapFromSettings, 
   loadEarlyExitFromSettings, 
-  loadKeyFromSettings, 
-  loadPolicyFromSettings, 
+  loadLlmSettings,
+  loadPolicyFromSettings,
 } from "./settings-loader.js";
 import { actionFunctions, modmailErr } from "./action-functions.js";
 import type { TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
 import type { EvaluationResult, Violation } from "./PolicyEngine/handlers/types.js";
 import type { ModelConfig } from "./PolicyEngine/types.js"
 import type { SeverityActionMap, ContentInfo } from "./types.js";
+import type { LlmSettings } from "./settings-loader.js";
 
 Devvit.configure({
   redditAPI: true,
@@ -18,13 +19,77 @@ Devvit.configure({
 });
 
 Devvit.addSettings([
+  // App-level settings, set by the developer via `devvit settings set <name>`
   {
     name: 'apiKey',
-    label: 'OpenAI API Key',
+    label: 'Default LLM API Key',
     type: 'string',
     scope: 'app',
     isSecret: true,
   },
+  {
+    // optional; defaults to the Gemini OpenAI-compatible endpoint
+    name: 'defaultLlmURL',
+    label: 'Default LLM Base URL',
+    type: 'string',
+    scope: 'app',
+    isSecret: true,
+  },
+  {
+    // optional; defaults to gemini-3.5-flash-lite
+    name: 'defaultLlmName',
+    label: 'Default LLM Model Name',
+    type: 'string',
+    scope: 'app',
+    isSecret: true,
+  },
+  {
+    // optional; e.g. 'none' for reasoning models that only accept temperature 0 without reasoning
+    name: 'defaultLlmReasoningEffort',
+    label: 'Default LLM Reasoning Effort',
+    type: 'string',
+    scope: 'app',
+    isSecret: true,
+  },
+  {
+    // premium settings are used together for subreddits listed in premiumSubreddits
+    name: 'premiumApiKey',
+    label: 'Premium LLM API Key',
+    type: 'string',
+    scope: 'app',
+    isSecret: true,
+  },
+  {
+    name: 'premiumLlmURL',
+    label: 'Premium LLM Base URL',
+    type: 'string',
+    scope: 'app',
+    isSecret: true,
+  },
+  {
+    name: 'premiumLlmName',
+    label: 'Premium LLM Model Name',
+    type: 'string',
+    scope: 'app',
+    isSecret: true,
+  },
+  {
+    // optional
+    name: 'premiumLlmReasoningEffort',
+    label: 'Premium LLM Reasoning Effort',
+    type: 'string',
+    scope: 'app',
+    isSecret: true,
+  },
+  {
+    // comma-separated subreddit names
+    name: 'premiumSubreddits',
+    label: 'Subreddits using the premium key',
+    type: 'string',
+    scope: 'app',
+    isSecret: true,
+  },
+  // Installation-level settings, set by mods
   {
     name: 'policyJson',
     label: 'Policy Definition',
@@ -38,18 +103,32 @@ Devvit.addSettings([
     scope: 'installation'
   },
   {
-    name: 'llmURL',
-    label: 'LLM Base URL',
+    name: 'overrideApiKey',
+    label: 'LLM API Key Override (optional)',
+    helpText: 'Use your own OpenAI or Gemini key. Visible to mods with config access. ' +
+      'The URL and model overrides below only apply when this is set.',
     type: 'string',
-    scope: 'installation', 
-    defaultValue: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    scope: 'installation',
   },
   {
-    name: 'llmName',
-    label: 'LLM Model Name',
+    name: 'overrideLlmURL',
+    label: 'LLM Base URL Override (optional)',
+    helpText: 'OpenAI-compatible chat completions endpoint. Defaults to Gemini.',
     type: 'string',
-    scope: 'installation', 
-    defaultValue: 'gemini-2.5-flash-lite',
+    scope: 'installation',
+  },
+  {
+    name: 'overrideLlmName',
+    label: 'LLM Model Name Override (optional)',
+    type: 'string',
+    scope: 'installation',
+  },
+  {
+    name: 'overrideLlmReasoningEffort',
+    label: 'LLM Reasoning Effort Override (optional)',
+    helpText: "Sent as reasoning_effort.",
+    type: 'string',
+    scope: 'installation',
   },
   {
     name: 'earlyExit',
@@ -68,34 +147,38 @@ Devvit.addSettings([
 ]);
 
 let engine: PolicyEngine | undefined;
+let engineConfigKey: string | undefined;
 
 /**
  * Wrapper around PolicyEngine constructor for skipping repeated instantiation (minor optimization)
- * and abstracting away engine construction.
+ * and abstracting away engine construction. The engine is rebuilt whenever the subreddit,
+ * policy, or model config changes, so the URL and model always match the key resolved for this event.
  * @returns PolicyEngine object encoding some policy and providing evaluation utility.
  */
-async function getEngine(context: TriggerContext): Promise<PolicyEngine> {
-  if (!engine) {
-    const policyJson: Record<string, unknown> = await loadPolicyFromSettings(context);
-
-    const modelName = await context.settings.get("llmName");
-    if (typeof modelName !== "string" || modelName.length === 0) {
-      throw new Error('Setting "llmName" must be a non-empty string');
-    }
-
-    const baseUrlRaw = await context.settings.get("llmURL");
-    if (typeof baseUrlRaw !== "string" || baseUrlRaw.length === 0) {
-      throw new Error('Setting "llmURL" must be a non-empty string');
-    }
-    const baseUrl = baseUrlRaw.replace(/\/+$/, "");
-
+async function getEngine(context: TriggerContext, llm: LlmSettings): Promise<PolicyEngine> {
+  const policyJson: Record<string, unknown> = await loadPolicyFromSettings(context);
+  const configKey = JSON.stringify(
+    [context.subredditName, policyJson, llm.baseUrl, llm.modelName, llm.reasoningEffort]
+  );
+  if (!engine || engineConfigKey !== configKey) {
     const config: ModelConfig = {
-      modelName: modelName,
-      baseUrl: baseUrl
-    }
+      modelName: llm.modelName,
+      baseUrl: llm.baseUrl,
+      reasoningEffort: llm.reasoningEffort,
+    };
     engine = new PolicyEngine(policyJson, config, 100);
+    engineConfigKey = configKey;
   }
   return engine;
+}
+
+/** 0 -> A, 25 -> Z, 26 -> AA, ... */
+function threadLabel(index: number): string {
+  let label = "";
+  for (let n = index + 1; n > 0; n = Math.floor((n - 1) / 26)) {
+    label = String.fromCharCode(65 + ((n - 1) % 26)) + label;
+  }
+  return label;
 }
 
 async function getThread(
@@ -107,13 +190,24 @@ async function getThread(
   while (current.parentId?.startsWith('t1_')) {
     const parent = await context.reddit.getCommentById(current.parentId);
     if (parent && parent.body) {
-      const author = parent.authorId ?? "Unknown User";
-      const text = parent.body;
-      chain.push(`${author}: ${text}`);
+      chain.push({ authorId: parent.authorId ?? "Unknown User", text: parent.body });
     }
     current = parent;
   }
-  return chain.reverse();
+  chain.reverse();
+
+  // Replace account IDs with per-thread labels (User A, User B, ...) before anything
+  // is sent sent over network (data safety)
+  const labels = new Map<string, string>();
+  return chain.map(({ authorId, text }) => {
+    if (!authorId) return `Unknown User: ${text}`;
+    let label = labels.get(authorId);
+    if (!label) {
+      label = `User ${threadLabel(labels.size)}`;
+      labels.set(authorId, label);
+    }
+    return `${label}: ${text}`;
+  });
 }
 
 /**
@@ -175,24 +269,26 @@ async function safeEvaluate(
     context,
     contentInfo, 
     contextList, 
-    apiKey, 
     doEarlyExit  
   }: {
     context: TriggerContext,
     contentInfo: ContentInfo, 
     contextList?: string[], 
-    apiKey: string, 
     doEarlyExit: boolean 
   }
 ): Promise<EvaluationResult | null> {
   try {
+    // resolve key, URL, and model together so the key only goes to its matching URL
+    const llm: LlmSettings = await loadLlmSettings(context);
+    console.log(`LLM settings: source=${llm.source} model=${llm.modelName} url=${llm.baseUrl} ` +
+      `reasoning_effort=${llm.reasoningEffort ?? "(not sent)"}`);
     // use policy engine to attempt to evaluate content
-    const engine = await getEngine(context);
+    const engine = await getEngine(context, llm);
     const result: EvaluationResult = await engine.evaluate({
       text: contentInfo.text, 
       imageUrl: contentInfo.imgUrl,
       contextList: contextList, 
-      apiKey: apiKey, 
+      apiKey: llm.apiKey, 
       doEarlyExit: doEarlyExit
     });
     console.log("Content safely evaluated.")
@@ -239,14 +335,12 @@ async function handleCommentCreate(
     type: "comment"
   }
   
-  const apiKey = await loadKeyFromSettings(context);
   const earlyExit = await loadEarlyExitFromSettings(context);
 
   const result: EvaluationResult | null = await safeEvaluate({
     context: context,
     contentInfo: commentInfo, 
     contextList: commentThread, 
-    apiKey: apiKey, 
     doEarlyExit: earlyExit
   })
 
@@ -303,12 +397,10 @@ async function handlePostCreate(
     type: "post"
   }
 
-  const apiKey = await loadKeyFromSettings(context);
   const earlyExit = await loadEarlyExitFromSettings(context)
   const result: EvaluationResult | null = await safeEvaluate({
     context: context,
     contentInfo: postInfo, 
-    apiKey: apiKey, 
     doEarlyExit: earlyExit
   })
 

@@ -34,7 +34,7 @@ A given policy tree expresses what the evaluated content must satisfy. Here, we 
 
 [![Policy as tree](https://i.imgur.com/dTzZJU1.png)](https://imgur.com/a/PBP3CYy)
 
-See ./docs for more.
+See ./docs for more. See ![demo subreddit](https://www.reddit.com/r/parallax_demo/) to try it out.
 
 ---
 
