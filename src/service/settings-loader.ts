@@ -129,6 +129,19 @@ export async function loadIgnoreFailuresFromSettings(
   return ignoreFailures;
 }
 
+const DEFAULT_RETRY_MINUTES = 60;
+
+/** Minutes to wait before retrying an evaluation whose LLM request failed; 0 disables retries */
+export async function loadRetryMinutesFromSettings(
+  context: TriggerContext
+): Promise<number> {
+  const retryMinutes = await context.settings.get("llmRetryMinutes");
+  if (typeof retryMinutes !== "number" || !Number.isFinite(retryMinutes) || retryMinutes < 0) {
+    return DEFAULT_RETRY_MINUTES;
+  }
+  return retryMinutes;
+}
+
 const DEFAULT_LLM_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 const DEFAULT_LLM_NAME = "gemini-3.5-flash-lite";
 

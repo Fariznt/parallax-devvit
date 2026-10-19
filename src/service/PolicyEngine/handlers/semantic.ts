@@ -5,6 +5,26 @@ import {
 } from "./utils.js"
 import { assertSemanticCheck } from "../policy-validator.js";
 
+/**
+ * Error from the LLM request itself (as opposed to policy or settings errors).
+ * status is the HTTP status, or null if no usable response came back
+ * (network failure or malformed output).
+ */
+export class LlmCallError extends Error {
+  status: number | null;
+
+  constructor(message: string, status: number | null = null, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "LlmCallError";
+    this.status = status;
+  }
+
+  /** Whether a later attempt could succeed: rate limits, server errors, network failures, bad output */
+  get retryable(): boolean {
+    return this.status === null || this.status === 408 || this.status === 429 || this.status >= 500;
+  }
+}
+
 export function evalSemantic({
   evalState,
   policyNode, 
@@ -156,11 +176,7 @@ async function fetchLLMResponse(
 
     if (!response.ok) {
       const errText = await response.text();
-      const error = new Error(`API error ${response.status}: ${errText}`) as Error & {
-        status: number;
-      };
-      error.status = response.status;
-      throw error;
+      throw new LlmCallError(`API error ${response.status}: ${errText}`, response.status);
     }
 
     const data = await response.json();
@@ -168,7 +184,10 @@ async function fetchLLMResponse(
 
   } catch (e) {
     console.error("Fetch failed:", e);
-    throw e;
+    if (e instanceof LlmCallError) throw e;
+    // no HTTP response (network failure) or an unexpected response body
+    const message = e instanceof Error ? e.message : String(e);
+    throw new LlmCallError(`LLM request failed: ${message}`, null, { cause: e });
   }
 
 }
@@ -207,7 +226,7 @@ function safeParse(rawResponse: string, model: string, baseUrl: string): any {
       .filter(Boolean)
       .join(" ");
 
-    throw new Error(details, { cause: err });
+    throw new LlmCallError(details, null, { cause: err });
   }
 }
 
@@ -219,7 +238,7 @@ export function validateResponseShape(data: unknown): asserts data is {
   results: { id: number; match: boolean; explanation: string }[];
 } {
   const fail = (): never => {
-    throw new Error(
+    throw new LlmCallError(
       `LLM formatted the JSON incorrectly.\n\nJSON:\n${JSON.stringify(data, null, 2)}`
     );
   };

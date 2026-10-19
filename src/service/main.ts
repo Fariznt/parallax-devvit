@@ -4,11 +4,13 @@ import {
   loadActionMapFromSettings, 
   loadEarlyExitFromSettings, 
   loadIgnoreFailuresFromSettings,
-  loadPolicyFromSettings, 
+  loadPolicyFromSettings,
   loadLlmSettings,
+  loadRetryMinutesFromSettings,
 } from "./settings-loader.js";
 import { actionFunctions, modmailErr } from "./action-functions.js";
-import type { TriggerEventType, Comment, TriggerContext } from "@devvit/public-api";
+import { LlmCallError } from "./PolicyEngine/handlers/semantic.js";
+import type { TriggerEventType, Comment, Post, TriggerContext } from "@devvit/public-api";
 import type { EvaluationResult, Violation } from "./PolicyEngine/handlers/types.js";
 import type { ModelConfig } from "./PolicyEngine/types.js"
 import type { SeverityActionMap, ContentInfo } from "./types.js";
@@ -19,6 +21,12 @@ Devvit.configure({
   http: true,
   redis: true,
 });
+
+// immediate retries with backoff, for brief LLM blips
+const QUICK_RETRIES = 2;
+// delayed retries after quick retries are used up, spaced by the "llmRetryMinutes" setting
+const MAX_SCHEDULED_RETRIES = 3;
+const RETRY_JOB = "retryEvaluation";
 
 Devvit.addSettings([
   // App-level settings, set by the developer via `devvit settings set <name>`
@@ -149,11 +157,25 @@ Devvit.addSettings([
     scope: 'installation',
   },
   {
+    // name kept from when this only covered 503s, so existing installs keep their value
     name: "ignoreFailures",
-    label: "Ignore Evaluation Failures",
+    label: "Silence LLM Failure Reports",
+    helpText: "Don't send modmail when a post/comment can't be evaluated because the LLM " +
+      "request failed (after any retries). Policy and settings errors are still reported.",
     type: "boolean",
     defaultValue: false,
     scope: 'installation',
+  },
+  {
+    name: 'llmRetryMinutes',
+    label: 'LLM Failure Retry Interval (minutes)',
+    helpText: `After an LLM request fails (e.g. the provider is overloaded), wait this long before ` +
+      `re-evaluating the post/comment. Retried up to ${MAX_SCHEDULED_RETRIES} times. 0 disables retries.`,
+    type: 'number',
+    defaultValue: 60,
+    scope: 'installation',
+    onValidate: ({ value }) =>
+      value !== undefined && (!Number.isFinite(value) || value < 0) ? 'Must be 0 or more' : undefined,
   },
   {
     name: 'remMailOnApproveRemove',
@@ -279,23 +301,87 @@ async function resultApply(
 }
 
 /**
- * Uses policy engine to return an EvaluationResult, but guarding for errors and 
- * surfacing them to modmail.
+ * Runs engine.evaluate, retrying retryable LLM failures up to QUICK_RETRIES times
+ * with exponential backoff.
+ */
+async function evaluateWithBackoff(
+  engine: PolicyEngine,
+  args: Parameters<PolicyEngine["evaluate"]>[0]
+): Promise<EvaluationResult> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await engine.evaluate(args);
+    } catch (err) {
+      if (!(err instanceof LlmCallError) || !err.retryable || attempt >= QUICK_RETRIES) throw err;
+      // ~1s, then ~2s, with jitter
+      const delayMs = 1000 * 2 ** attempt * (0.5 + Math.random());
+      console.warn(`LLM request failed (${err.message}); retrying in ${Math.round(delayMs)}ms`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
+type RetryJobData = {
+  type: ContentInfo["type"];
+  id: string;
+  scheduledRetries: number; // including the one this job runs
+};
+
+/**
+ * Schedules RETRY_JOB to re-evaluate the content after the "llmRetryMinutes" setting,
+ * unless retries are disabled or used up.
+ * @returns whether a retry was scheduled
+ */
+async function scheduleRetry(
+  context: TriggerContext,
+  contentInfo: ContentInfo,
+  scheduledRetries: number
+): Promise<boolean> {
+  try {
+    const retryMinutes = await loadRetryMinutesFromSettings(context);
+    if (!contentInfo.id || retryMinutes === 0 || scheduledRetries >= MAX_SCHEDULED_RETRIES) {
+      return false;
+    }
+    const data: RetryJobData = {
+      type: contentInfo.type,
+      id: contentInfo.id,
+      scheduledRetries: scheduledRetries + 1,
+    };
+    await context.scheduler.runJob({
+      name: RETRY_JOB,
+      data,
+      runAt: new Date(Date.now() + retryMinutes * 60_000),
+    });
+    console.warn(`Scheduled retry ${data.scheduledRetries}/${MAX_SCHEDULED_RETRIES} for ` +
+      `${contentInfo.type} ${contentInfo.id} in ${retryMinutes} min`);
+    return true;
+  } catch (err) {
+    console.error("Failed to schedule evaluation retry:", err);
+    return false;
+  }
+}
+
+/**
+ * Uses policy engine to return an EvaluationResult, but guarding for errors and
+ * surfacing them to modmail. Failed LLM requests are retried right away with backoff,
+ * then rescheduled with scheduleRetry, and only reported once both are used up.
  * @returns EvaluationResult if successful, null otherwise
  */
 async function safeEvaluate(
   {
     context,
-    contentInfo, 
+    contentInfo,
     contextList,
     doEarlyExit,
     ignoreFailures,
+    scheduledRetries,
   }: {
     context: TriggerContext,
-    contentInfo: ContentInfo, 
+    contentInfo: ContentInfo,
     contextList?: string[],
     doEarlyExit: boolean,
     ignoreFailures: boolean,
+    scheduledRetries: number, // scheduled retries already done for this content
   }
 ): Promise<EvaluationResult | null> {
   try {
@@ -305,7 +391,7 @@ async function safeEvaluate(
       `reasoning_effort=${llm.reasoningEffort ?? "(not sent)"}`);
     // use policy engine to attempt to evaluate content
     const engine = await getEngine(context, llm);
-    const result: EvaluationResult = await engine.evaluate({
+    const result: EvaluationResult = await evaluateWithBackoff(engine, {
       text: contentInfo.text, 
       imageUrl: contentInfo.imgUrl,
       contextList: contextList, 
@@ -322,22 +408,23 @@ async function safeEvaluate(
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : typeof err === "string" ? err : "Unknown error";
-    const status =
-      err instanceof Error && "status" in err && typeof err.status === "number"
-        ? err.status
-        : null;
 
-    if (status === 503) {
+    if (err instanceof LlmCallError) {
+      if (err.retryable && await scheduleRetry(context, contentInfo, scheduledRetries)) {
+        return null;
+      }
       console.warn(
-        `LLM unavailable (503) while evaluating ${contentInfo.type} at ${contentInfo.link}`
+        `LLM request failed while evaluating ${contentInfo.type} at ${contentInfo.link}: ${message}`
       );
       if (!ignoreFailures) {
         const link = contentInfo.link ?? "<link could not be obtained>";
+        const retried = scheduledRetries > 0 ? ` after ${scheduledRetries} scheduled retries` : "";
         await modmailErr(
           context,
-          `This ${contentInfo.type} could not be automatically evaluated because the LLM service is temporarily unavailable due to high server load.
+          `This ${contentInfo.type} could not be automatically evaluated because the LLM request failed${retried}.
         Please review it manually:
-        ${link}`,
+        ${link}
+        Error: ${message}`,
         "Unable to evaluate: manual review needed"
         );
       }
@@ -357,33 +444,55 @@ async function safeEvaluate(
   }
 }
 
-async function handleCommentCreate(
-  event: TriggerEventType["CommentCreate"], 
-  context: TriggerContext) {
-  const comment = event.comment;
-  const text = comment?.body ?? "";
-  if (!comment || !text) return;
+/** Comment fields used for evaluation, common to trigger payloads and fetched Comments */
+type CommentFields = {
+  id: string;
+  body: string;
+  parentId?: string;
+  permalink: string;
+  authorName?: string;
+};
+
+/**
+ * Reads the "enabled" setting, reporting it and defaulting to false if malformed.
+ */
+async function isEnabled(context: TriggerContext): Promise<boolean> {
+  const enabled = await context.settings.get("enabled");
+  if (typeof enabled !== "boolean") {
+    await modmailErr(context, `Invalid type for 'enabled' setting. Defaulting to false.`)
+    return false;
+  }
+  return enabled;
+}
+
+async function evaluateComment(
+  comment: CommentFields,
+  context: TriggerContext,
+  scheduledRetries: number) {
+  const text = comment.body;
+  if (!text) return;
   const commentThread: string[] = await getThread(context, comment);
 
   const commentInfo: ContentInfo = {
-    username: event.author?.name ?? null,
-    id: event.comment?.id ?? null,
+    username: comment.authorName ?? null,
+    id: comment.id,
     text: text,
-    link: event.comment?.permalink ?? null,
+    link: comment.permalink,
     imgUrl: null,
     type: "comment"
   }
-  
+
   const earlyExit = await loadEarlyExitFromSettings(context);
   const ignoreFailures = await loadIgnoreFailuresFromSettings(context);
 
-  console.log(`Evaluating comment: ${event.comment?.id}`);
+  console.log(`Evaluating comment: ${comment.id}`);
   const result: EvaluationResult | null = await safeEvaluate({
     context: context,
-    contentInfo: commentInfo, 
+    contentInfo: commentInfo,
     contextList: commentThread,
     doEarlyExit: earlyExit,
     ignoreFailures: ignoreFailures,
+    scheduledRetries: scheduledRetries,
   })
 
   if (result) {
@@ -398,29 +507,26 @@ async function handleCommentCreate(
  */
 Devvit.addTrigger({
   // Fires for new comments, including replies.
-  event: "CommentCreate", 
+  event: "CommentCreate",
   onEvent: async (event: TriggerEventType["CommentCreate"], context) => {
-    let enabled = await context.settings.get("enabled");
-    if (typeof enabled !== "boolean") {
-      await modmailErr(context, `Invalid type for 'enabled' setting. Defaulting to false.`)
-      enabled = false;
-    }
-    if (enabled) {
+    const comment = event.comment;
+    if (comment && await isEnabled(context)) {
       console.log('CommentCreate event triggered');
-      await handleCommentCreate(event, context)
+      await evaluateComment({
+        id: comment.id,
+        body: comment.body,
+        parentId: comment.parentId,
+        permalink: comment.permalink,
+        authorName: event.author?.name,
+      }, context, 0)
     }
   },
 });
 
-async function handlePostCreate(
-  event: TriggerEventType["PostCreate"], 
-  context: TriggerContext) {
-  const post = event.post ? await context.reddit.getPostById(event.post.id) : null;
-  if (!post) {
-    console.warn("PostCreate fired without post payload");
-    return;
-  }
-
+async function evaluatePost(
+  post: Post,
+  context: TriggerContext,
+  scheduledRetries: number) {
   const body = post.body ? post.body.trim() : "No Body";
   const title = post.title.trim();
   const text =
@@ -431,22 +537,23 @@ async function handlePostCreate(
   const imgLink = enrichedThumbnail?.image.url ?? null;
 
   const postInfo: ContentInfo = {
-    username: event.author?.name ?? null,
-    id: event.post?.id ?? null,
+    username: post.authorName ?? null,
+    id: post.id,
     text: text,
-    link: event.post?.permalink ?? null,
+    link: post.permalink,
     imgUrl: imgLink,
     type: "post"
   }
 
   const earlyExit = await loadEarlyExitFromSettings(context);
   const ignoreFailures = await loadIgnoreFailuresFromSettings(context);
-  console.log(`Evaluating post: ${event.post?.id}`);
+  console.log(`Evaluating post: ${post.id}`);
   const result: EvaluationResult | null = await safeEvaluate({
     context: context,
     contentInfo: postInfo,
     doEarlyExit: earlyExit,
     ignoreFailures: ignoreFailures,
+    scheduledRetries: scheduledRetries,
   })
 
   if (result) {
@@ -463,16 +570,48 @@ Devvit.addTrigger({
   // Fires for newly created posts.
   event: "PostCreate",
   onEvent: async (event: TriggerEventType["PostCreate"], context) => {
-    let enabled = await context.settings.get("enabled");
-    if (typeof enabled !== "boolean") {
-      await modmailErr(context, `Invalid type for 'enabled' setting. Defaulting to false.`)
-      enabled = false;
-    }
-    if (enabled) {
+    if (await isEnabled(context)) {
       console.log('PostCreate event triggered');
-      await handlePostCreate(event, context)
+      const post = event.post ? await context.reddit.getPostById(event.post.id) : null;
+      if (!post) {
+        console.warn("PostCreate fired without post payload");
+        return;
+      }
+      await evaluatePost(post, context, 0)
     }
   }
+});
+
+/**
+ * Re-evaluates content whose LLM request failed earlier (see scheduleRetry), unless a
+ * mod has already actioned it in the meantime.
+ */
+Devvit.addSchedulerJob<RetryJobData>({
+  name: RETRY_JOB,
+  onRun: async (event, context) => {
+    const data = event.data;
+    if (!data || !(await isEnabled(context))) return;
+    console.log(`Retrying evaluation of ${data.type} ${data.id} ` +
+      `(retry ${data.scheduledRetries}/${MAX_SCHEDULED_RETRIES})`);
+
+    // skip anything a mod removed or approved since it was first evaluated
+    const alreadyActioned = (c: Comment | Post) => c.removed || c.spam || c.approved;
+    if (data.type === "comment") {
+      const comment = await context.reddit.getCommentById(data.id);
+      if (alreadyActioned(comment)) {
+        console.log(`comment ${data.id} was already actioned; skipping retry`);
+        return;
+      }
+      await evaluateComment(comment, context, data.scheduledRetries);
+    } else {
+      const post = await context.reddit.getPostById(data.id);
+      if (alreadyActioned(post)) {
+        console.log(`post ${data.id} was already actioned; skipping retry`);
+        return;
+      }
+      await evaluatePost(post, context, data.scheduledRetries);
+    }
+  },
 });
 
 export default Devvit;
