@@ -105,13 +105,6 @@ Devvit.addSettings([
     scope: 'installation'
   },
   {
-    name: 'llmURL',
-    label: 'LLM Base URL',
-    helpText: 'This is the base url of the LLM API you are using.',
-    type: 'string',
-    scope: "installation"
-  },
-  {
     name: 'overrideApiKey',
     label: 'LLM API Key Override (optional)',
     helpText: 'Use your own OpenAI or Gemini key. Visible to mods with config access. ' +
