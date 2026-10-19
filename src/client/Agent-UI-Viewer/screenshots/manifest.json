@@ -1,0 +1,17 @@
+{
+  "capturedAt": "2026-06-11T05:06:27.249Z",
+  "captures": [
+    {
+      "name": "inline-mod",
+      "file": "/home/fariz/Dev/Content Moderation/old/policy-agent/src/client/Agent-UI-Viewer/screenshots/inline-mod.png",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:7474/inline.html"
+    },
+    {
+      "name": "main-mod",
+      "file": "/home/fariz/Dev/Content Moderation/old/policy-agent/src/client/Agent-UI-Viewer/screenshots/main-mod.png",
+      "viewport": "1200x800",
+      "url": "http://127.0.0.1:7474/main.html"
+    }
+  ]
+}

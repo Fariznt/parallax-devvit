@@ -1,0 +1,203 @@
+add separate/extra aisha check for modmail
+publish ASAP
+
+
+try without redditapi enabled
+(keep ban-related code in my gitignore for now (move it) + ask about it in request if possible)
+
+
+
+actual todo within weeks
+-finish bench and readme corresponding to it
+  true performance is actually better because dataset has lots of hits,
+  true policy is better fitting, etc.
+
+- update readme with the migration info
+
+- make sure i can claim trace surfacing. probably add trace surfacing and viewing as a actual feature in webview.
+- probably make an izlam branch and keep modqueue thing separate there, or make it toggleablel, and separately
+expose the trace post
+
+
+- marketing and outreach
+- usability improvements
+
+Future
+
+0. architecture readme
+1. support for posts, not just comments (image understanding? at least route title as a comment)
+2. switch to yaml -> json conversion
+3. check compatibility with other apis
+4. consider migration to web-style when functional (high priority due to resume significance)
+    allows UI for policy definition + UI action into reddit's interface for mods (ex. get trace) + webdev credibility
+    + trace visibility
+5. wrapping this is fundamental https://platform.openai.com/docs/guides/moderation?utm_source=chatgpt.com
+    (MUST CHANGE TOS ACCORINDGLY)
+6. incorporate use of post history
+8. hella documentation
+    more than one semantic node in any_of block is invalid. enforce through validation
+    input threads need identifiers
+    any of leaves downstream violations which may be interdependent
+    -semantic node has not been stress tested for a reasonable limit on semantic nodes per policy
+    (how much can one prompt handle) and it would be difficult/unreasonable to do so (theres always a stronger model,
+    and the splitting depends on use case/semantic complexity) (a framework to help users do this would be nice in the future)
+12. add to validation that semantic_check is invalid if no deafult LLMConfig or referenced key is missing etc.
+14. make types location consistent (theres some in validation rn)
+15 enforce this in validation:
+  if (newDefChecks > 1) {
+    throw new Error(
+      `1> computation-deferring nodes are not permitted downstream an 'any_of' node
+       or downstream a 'not' node followed by an 'all_of' node.
+      A policy refactor is necessarily possible and cheaper by combining combinator logic 
+      into a semantic_node.`
+    )
+  }
+16. consider capping deferred checks such that past a threshold its split
+and/or more evaluation modes like cross-content batching, 0 batching
+17. support for how hard to think and maybe some sort of modding history testing pipeline
+18. llm throttling
+19. use menuitem as on/off button
+20. custom number of days banned
+21. dealing with bogus reports
+22. when custom ui for settings handling, direct errors before erroring on comment
+  rn need post/comment for error information (note this in docs)
+  + more informative errors than current
+23. separate tests to different files
+24. cap context
+25. errors are spammed to modmail. problematic for repeated issues. will be fixable once there is a database for caching errors
+26. allow next check in combinators? is it necessary? if so, need to code it in. otherwise,
+validator should explicitly prevent it
+27. something might be wrong with addressing like "its ok to be gay" evaluated by izlanimemes
+
+gassing up the project for resume. things i dont want to forget:
+-Tested for context awareness (thread history)
+-Tested for resistance against prompt injection
+-Can represent any boolean expression over modular predicates
+
+notes for me:
+devvit settings set apiKey for setting apiKey
+everything else set in mod tools
+severity will be the closest upstream severity defined
+
+
+figure out what im going to do in terms of tree representation. if decide against batch processing need to indicate in my architecture files
+    these architectural decisions depend on the role this plays in the larger system
+    perhaps: deterministic obvious removes (silent). removes + modmail. and non removes.
+        i could keep the policyengine agnostic to this 3 way triage and do only 2 way. examine the trace, and llm involvement
+        leads to modmail.
+        So for r/izlam:
+        final:
+        all comments -> run through evaluation tree -> removed or not removed. if removed -> escalate to modmail with trace info
+        report -> run through llm node -> remove or not removed. make removal sensitive/safe; if removed escalate to modmail else silent delete
+        proto:
+        all modqueue items -> run through llm -> trivial removed
+
+
+        how can i deploy an automoderator 2nd phase version without writing much extra code that would be directly used in the final version?
+            final version needs to be able to interact with modmail anyweayws and actually simply modmail event read + archive probably not too complicated, if feasible.
+            i should rush early approval. then slowly work on building a proper engine that can be used elsewhere
+
+reusable code:
+
+For allowing custom number of days:
+    //   // if not a known/configured action (ACTIONS or ban:<number>)
+    //   if (!ACTIONS.has(action) && !(/^ban:\d+$/.test(action))) {
+    //     throw new Error(
+    //       `Invalid action "${action}" for severity "${rawKey}". ` +
+    //       `Allowed actions: ${Array.from(ACTIONS).join(', ')}, ban:<number of days>`
+    //     );
+    //   }
+for removal
+  // if (result.violation) {
+  //   if (result.violation)
+  //   await context.reddit.remove(contentId, false);
+  //   await context.reddit.addRemovalNote({
+  //     itemIds: [contentId], 
+  //     reasonId: "", // empty for now---may extract from trace in future
+  //     modNote: result.modNote
+  //   });
+  //   // alert modmail as needed
+  // }
+
+  religious test
+  /**
+ * Runs a complex/nuanced example of a semantic node with
+ * culturally sensitive condition (best use case of semantic node)
+ * that a community may have chosen to govern content by. This example
+ * tests knowledge-based evaluation---the LLM must know what constitutes
+ * this belief system, not just read meaning.
+ * 
+ * Promotes normalizes, or trivializes beliefs or actions that contradict
+ * doctrines of the Catholic Church as articulated in the Catechism,
+ * Sacred Scripture, and Sacred Tradition
+ * 
+ * Wrapped in not node to violate for content meeting the above condition.
+ * 
+ * Returns true upon violation.
+ */
+async function semantic_religious(text: string): Promise<boolean> {
+  return policyViolates(policies.semantic_simple, text)
+}
+
+
+menu item
+// /**
+//  * Event listener for testing units of code during development
+//  */
+// Devvit.addMenuItem({
+//   location: 'subreddit',
+//   label: 'Run PolicyAgent Test',
+//   forUserType: 'moderator',
+//   onPress: async (event, context) => {
+//     const subredditName = context.subredditName;
+
+//     console.log(`PolicyAgent test triggered on r/${subredditName}`);
+
+//     if (subredditName) {
+//       // Example: fetch wiki policy
+//       const wiki = await context.reddit.getWikiPage(
+//         subredditName,
+//         'index'
+//       );
+//       console.log(wiki.content); 
+//     } else {
+//       console.log("subredditname undefined")
+//     }
+ 
+//   },
+// });
+
+
+
+
+UCSD dataset from Wan et al. (ACL 2019): 1.38M book reviews split into 17.7M sentences. trigger words on potential spoilers "dies", "ending", "turns out", "reveals", "twist", "married", "killed", llm check on spoiler. this ones potentially good but quite fuzzy in what counts as a spoiler, and ground truth label quality.
+
+measuring hate speech dataset from uc berkley. could run a general thing, and stratify data by category as well.
+
+covid misinformation dataset from shahan ali memon cmu-miscov19
+
+prepare for irl info harness asw,although arguably the whole thing will be different. in implementation
+i think ill stick to real dataset, have the good real excuses ready for subreddit-specific data (reddit keeping stuff on reddit, etc. etc.)
+and also external datasets are much easier to manipulate for analysis.
+
+we need a harness that works with both. we need reasonable subset selection. i think itll be best to start on the likely and easy win of the hate speech one.
+
+
+build me a plan for a benchmarking harness in a new ./benchmarking
+
+the primary goal is to consume the hate speech dataset from uc berkley, but i also want to support later
+the ucsd dataset fro wan et al ACL 2019 of book discussions and spoilers.
+
+Dataset page: https://cseweb.ucsd.edu/~jmcauley/datasets/goodreads.html (the "English review subset for spoiler detection" section)
+Processed file, split into sentences with a spoiler flag on each: https://mcauleylab.ucsd.edu/public_datasets/gdrive/goodreads/goodreads_reviews_spoiler.json.gz (about 620 MB)
+Raw version: https://mcauleylab.ucsd.edu/public_datasets/gdrive/goodreads/goodreads_reviews_spoiler_raw.json.gz
+Paper: https://arxiv.org/abs/1905.13416
+
+Measuring Hate Speech (UC Berkeley), for the culture/identity scope
+
+https://huggingface.co/datasets/ucberkeley-dlab/measuring-hate-speech (CC-BY 4.0. Target columns: target_race_*, target_religion_*, target_origin_*, plus gender, sexuality, age, disability and politics)
+
+
+Halved LLM moderation costs while retaining 97% of full-LLM F1 on real-world hate speech data, with 74% fewer false positives than regex-only filtering.
+
+Be ready for one interview question. Regex-only actually had a slightly higher F1 (0.544 against 0.507) because it catches far more of the hate (80% recall against 44%). It just floods moderators with false positives. "74% fewer false positives" is true, but if someone asks "what about recall against regex?", the honest answer is that regex catches more but is wrong 59% of the time it flags (precision 0.41), while parallax is wrong 40% of the time (precision 0.60). That's still a good story for moderation, where false positives are what burn out human reviewers. Just don't get caught off guard by it.

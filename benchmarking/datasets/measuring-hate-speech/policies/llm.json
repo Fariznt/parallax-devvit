@@ -1,0 +1,8 @@
+{
+  "not": {
+    "name": "hate speech",
+    "semantic_check": {
+      "condition": "is hate speech: it attacks, insults, demeans, dehumanizes (e.g. as animals, vermin, disease), or threatens or calls for violence, exclusion, or removal of a person or group because of an identity (race, ethnicity, national origin, immigration status, religion, gender, gender identity, sexual orientation, age, disability, political affiliation), via slurs, hostile stereotypes stated as fact, or mockery. Judge intent and target, not keywords: counter-speech, quoting or reporting hate to criticize it, reclaimed or in-group slang used without hostility, criticism of ideas, institutions, or an individual's actions not tied to their identity, and identity-neutral profanity are NOT hate speech."
+    }
+  }
+}

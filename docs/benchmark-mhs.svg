@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" width="720" height="360" role="img" aria-labelledby="t d">
+<title id="t">Measuring Hate Speech benchmark: confusion counts per policy</title>
+<desc id="d">LLM only: TP 279, FP 279, FN 230, TN 1212; Regex only: TP 406, FP 579, FN 103, TN 912; Parallax (regex gate → LLM): TP 224, FP 151, FN 285, TN 1340 (2,000 items)</desc>
+<style>
+  svg { --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e4e3df; --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  @media (prefers-color-scheme: dark) {
+    svg { --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --grid:#33322f; --s1:#3987e5; --s2:#d95926; --s3:#199e70; }
+  }
+  .bg { fill: var(--surface); } .grid { stroke: var(--grid); stroke-width: 1; } .axis { stroke: var(--ink2); stroke-width: 1; }
+  .tick, .val { fill: var(--ink2); font-size: 11px; } .cat { fill: var(--ink); font-size: 12px; } .leg { fill: var(--ink); font-size: 12px; }
+  .s1 { fill: var(--s1); } .s2 { fill: var(--s2); } .s3 { fill: var(--s3); }
+</style>
+<rect class="bg" width="720" height="360" rx="8"/>
+<line class="grid" x1="56" x2="704" y1="316.0" y2="316.0"/>
+<text class="tick" x="48" y="320.0" text-anchor="end">0</text>
+<line class="grid" x1="56" x2="704" y1="232.0" y2="232.0"/>
+<text class="tick" x="48" y="236.0" text-anchor="end">500</text>
+<line class="grid" x1="56" x2="704" y1="148.0" y2="148.0"/>
+<text class="tick" x="48" y="152.0" text-anchor="end">1,000</text>
+<line class="grid" x1="56" x2="704" y1="64.0" y2="64.0"/>
+<text class="tick" x="48" y="68.0" text-anchor="end">1,500</text>
+<line class="axis" x1="56" x2="704" y1="316" y2="316"/>
+<path class="s1" d="M81.0,316 V273.1 Q81.0,269.1 85.0,269.1 H113.0 Q117.0,269.1 117.0,273.1 V316 Z"><title>LLM only · True positives: 279</title></path>
+<text class="val" x="99.0" y="264.1" text-anchor="middle">279</text>
+<path class="s2" d="M119.0,316 V251.8 Q119.0,247.8 123.0,247.8 H151.0 Q155.0,247.8 155.0,251.8 V316 Z"><title>Regex only · True positives: 406</title></path>
+<text class="val" x="137.0" y="242.8" text-anchor="middle">406</text>
+<path class="s3" d="M157.0,316 V282.4 Q157.0,278.4 161.0,278.4 H189.0 Q193.0,278.4 193.0,282.4 V316 Z"><title>Parallax (regex gate → LLM) · True positives: 224</title></path>
+<text class="val" x="175.0" y="273.4" text-anchor="middle">224</text>
+<text class="cat" x="137.0" y="336" text-anchor="middle">True positives</text>
+<path class="s1" d="M243.0,316 V273.1 Q243.0,269.1 247.0,269.1 H275.0 Q279.0,269.1 279.0,273.1 V316 Z"><title>LLM only · False positives: 279</title></path>
+<text class="val" x="261.0" y="264.1" text-anchor="middle">279</text>
+<path class="s2" d="M281.0,316 V222.7 Q281.0,218.7 285.0,218.7 H313.0 Q317.0,218.7 317.0,222.7 V316 Z"><title>Regex only · False positives: 579</title></path>
+<text class="val" x="299.0" y="213.7" text-anchor="middle">579</text>
+<path class="s3" d="M319.0,316 V294.6 Q319.0,290.6 323.0,290.6 H351.0 Q355.0,290.6 355.0,294.6 V316 Z"><title>Parallax (regex gate → LLM) · False positives: 151</title></path>
+<text class="val" x="337.0" y="285.6" text-anchor="middle">151</text>
+<text class="cat" x="299.0" y="336" text-anchor="middle">False positives</text>
+<path class="s1" d="M405.0,316 V281.4 Q405.0,277.4 409.0,277.4 H437.0 Q441.0,277.4 441.0,281.4 V316 Z"><title>LLM only · False negatives: 230</title></path>
+<text class="val" x="423.0" y="272.4" text-anchor="middle">230</text>
+<path class="s2" d="M443.0,316 V302.7 Q443.0,298.7 447.0,298.7 H475.0 Q479.0,298.7 479.0,302.7 V316 Z"><title>Regex only · False negatives: 103</title></path>
+<text class="val" x="461.0" y="293.7" text-anchor="middle">103</text>
+<path class="s3" d="M481.0,316 V272.1 Q481.0,268.1 485.0,268.1 H513.0 Q517.0,268.1 517.0,272.1 V316 Z"><title>Parallax (regex gate → LLM) · False negatives: 285</title></path>
+<text class="val" x="499.0" y="263.1" text-anchor="middle">285</text>
+<text class="cat" x="461.0" y="336" text-anchor="middle">False negatives</text>
+<path class="s1" d="M567.0,316 V116.4 Q567.0,112.4 571.0,112.4 H599.0 Q603.0,112.4 603.0,116.4 V316 Z"><title>LLM only · True negatives: 1,212</title></path>
+<text class="val" x="585.0" y="107.4" text-anchor="middle">1,212</text>
+<path class="s2" d="M605.0,316 V166.8 Q605.0,162.8 609.0,162.8 H637.0 Q641.0,162.8 641.0,166.8 V316 Z"><title>Regex only · True negatives: 912</title></path>
+<text class="val" x="623.0" y="157.8" text-anchor="middle">912</text>
+<path class="s3" d="M643.0,316 V94.9 Q643.0,90.9 647.0,90.9 H675.0 Q679.0,90.9 679.0,94.9 V316 Z"><title>Parallax (regex gate → LLM) · True negatives: 1,340</title></path>
+<text class="val" x="661.0" y="85.9" text-anchor="middle">1,340</text>
+<text class="cat" x="623.0" y="336" text-anchor="middle">True negatives</text>
+<rect class="s1" x="56" y="22" width="12" height="12" rx="3"/>
+<text class="leg" x="74" y="32">LLM only</text>
+<rect class="s2" x="158" y="22" width="12" height="12" rx="3"/>
+<text class="leg" x="176" y="32">Regex only</text>
+<rect class="s3" x="274" y="22" width="12" height="12" rx="3"/>
+<text class="leg" x="292" y="32">Parallax (regex gate → LLM)</text>
+</svg>

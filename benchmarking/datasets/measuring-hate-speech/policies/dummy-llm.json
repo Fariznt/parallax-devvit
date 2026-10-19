@@ -1,0 +1,8 @@
+{
+  "not": {
+    "name": "hate speech",
+    "semantic_check": {
+      "condition": "is hate speech: attacks, demeans, dehumanizes, or calls for violence or exclusion against people based on a protected characteristic (race, ethnicity, national origin or immigration status, religion, gender, sexual orientation, age, disability)"
+    }
+  }
+}

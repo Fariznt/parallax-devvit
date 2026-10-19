@@ -195,7 +195,8 @@ export class PolicyEngine {
 		} else {
 			if (evalState.deferredChecks.length > 0) {
 				await doDeferredChecks(
-						evalState, contextList, text, this.model.baseUrl, this.model.modelName, apiKey)
+						evalState, contextList, text, this.model.baseUrl, this.model.modelName, apiKey,
+						this.model.reasoningEffort)
 			}
 
 		}
