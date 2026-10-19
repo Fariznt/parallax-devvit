@@ -158,8 +158,7 @@ Devvit.addSettings([
   {
     name: 'remMailOnApproveRemove',
     label: 'Remove Related Modmail On Modqueue Approve/Remove',
-    helpText: `Removes u/Automoderator or u/policy-agent 
-    modmail related to a post/comment upon its approval/removal.`,
+    helpText: `Removes u/Automoderator or u/policy-agent modmail related to a post/comment upon its approval/removal in custom modqueue.`,
     type: 'boolean',
     defaultValue: false,
     scope: 'installation',
